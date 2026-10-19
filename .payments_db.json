@@ -1,0 +1,38 @@
+[
+  {
+    "planId": "pro",
+    "planName": "Merchant Pro (2,500 checks)",
+    "amountBDT": 499,
+    "paymentMethod": "bkash",
+    "senderNumber": "01711223344",
+    "transactionId": "BK82914710",
+    "userEmail": "merchant@example.com",
+    "id": "pay_mvf1xelv_04d7",
+    "status": "verified",
+    "submittedAt": "2026-10-19T09:28:13.363Z"
+  },
+  {
+    "id": "pay_01",
+    "planId": "pro",
+    "planName": "Merchant Pro (2,500 checks)",
+    "amountBDT": 499,
+    "paymentMethod": "bkash",
+    "senderNumber": "01711223344",
+    "transactionId": "9K8J7H6G5F",
+    "userEmail": "merchant@example.com",
+    "status": "verified",
+    "submittedAt": "2026-03-22T10:15:00Z"
+  },
+  {
+    "id": "pay_02",
+    "planId": "enterprise",
+    "planName": "Enterprise Unlimited",
+    "amountBDT": 1499,
+    "paymentMethod": "nagad",
+    "senderNumber": "01822334455",
+    "transactionId": "NGD8271948",
+    "userEmail": "store@dhakafashion.com",
+    "status": "verified",
+    "submittedAt": "2026-03-23T14:40:00Z"
+  }
+]

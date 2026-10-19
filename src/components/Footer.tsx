@@ -1,0 +1,130 @@
+import React from 'react';
+import { Shield, ExternalLink, Heart } from 'lucide-react';
+import type { Language } from '../utils/translations.ts';
+import { translations } from '../utils/translations.ts';
+
+interface FooterProps {
+  lang: Language;
+  onNavigate: (tab: string) => void;
+  openTrustBadge?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ lang, onNavigate, openTrustBadge }) => {
+  const t = translations[lang];
+
+  return (
+    <footer className="border-t border-slate-800/80 bg-[#050811] text-slate-400 text-xs mt-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand Info */}
+          <div className="space-y-3 md:col-span-2">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400/30 text-cyan-400">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-base font-bold text-white tracking-tight">
+                  {t.brandName}
+                </span>
+                <span className="text-[10px] text-cyan-400/90 font-medium uppercase tracking-wider">
+                  {t.brandCredit}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-slate-400 text-xs leading-relaxed max-w-md">
+              {t.footer.about}
+            </p>
+
+            <p className="text-slate-500 text-[11px] leading-relaxed max-w-md">
+              {t.footer.disclaimer}
+            </p>
+          </div>
+
+          {/* Quick Navigation */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+              {lang === 'bn' ? 'নেভিগেশন' : 'Navigation'}
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <button
+                  onClick={() => onNavigate('search')}
+                  className="hover:text-cyan-400 transition-colors"
+                >
+                  {t.nav.search}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('batch')}
+                  className="hover:text-cyan-400 transition-colors"
+                >
+                  {t.nav.batch}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('community')}
+                  className="hover:text-cyan-400 transition-colors"
+                >
+                  {t.nav.community}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('couriers')}
+                  className="hover:text-cyan-400 transition-colors"
+                >
+                  {t.nav.couriers}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('pricing')}
+                  className="hover:text-cyan-400 transition-colors"
+                >
+                  {t.nav.pricing}
+                </button>
+              </li>
+              {openTrustBadge && (
+                <li>
+                  <button
+                    onClick={openTrustBadge}
+                    className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 font-semibold"
+                  >
+                    <span>🛡️ {lang === 'bn' ? 'মার্চেন্ট ট্রাস্ট ব্যাজ' : 'Trust Badge Generator'}</span>
+                  </button>
+                </li>
+              )}
+            </ul>
+          </div>
+
+          {/* Supported Couriers */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+              {lang === 'bn' ? 'সাপোর্টেড কুরিয়ার নেটওয়ার্ক' : 'Integrated Couriers'}
+            </h4>
+            <ul className="space-y-1.5 text-slate-400 text-xs font-mono">
+              <li>Steadfast Courier</li>
+              <li>Pathao Courier</li>
+              <li>REDX Delivery</li>
+              <li>Paperfly Wings</li>
+              <li>eCourier Network</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
+          <p>{t.footer.copyright}</p>
+          <p className="flex items-center gap-1">
+            <span>Crafted with security & precision</span>
+            <span>·</span>
+            <span className="text-cyan-400 font-medium">{t.brandCredit}</span>
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+};

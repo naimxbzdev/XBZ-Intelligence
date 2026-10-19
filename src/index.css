@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  
+  .font-mono, [data-mono="true"], code, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .font-display {
+    font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
+  }
+}
+
+/* Custom scrollbar for cyber dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #090e1c;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #06b6d4;
+}
+
+/* Subtle glowing accents */
+.glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+}
+
+.glow-blue {
+  box-shadow: 0 0 30px -5px rgba(59, 130, 246, 0.25);
+}
+
+.glow-danger {
+  box-shadow: 0 0 25px -5px rgba(239, 68, 68, 0.25);
+}
+
+/* Glassmorphism panel */
+.glass-panel {
+  background: rgba(13, 21, 39, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+}
+
+.glass-card {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Continuous News Ticker Marquee (Right to Left) */
+@keyframes ticker-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker-marquee {
+  display: flex;
+  width: max-content;
+  animation: ticker-marquee var(--ticker-duration, 190s) linear infinite;
+  will-change: transform;
+}
+
+.animate-ticker-marquee:hover,
+.animate-ticker-marquee.is-paused {
+  animation-play-state: paused !important;
+}
+

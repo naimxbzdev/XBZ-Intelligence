@@ -1,0 +1,6 @@
+{
+  "name": "XBZ Intelligence",
+  "description": "XBZ Intelligence by Naim Xbz - Bangladesh's premium courier delivery history lookup and delivery-risk analysis platform for e-commerce merchants.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

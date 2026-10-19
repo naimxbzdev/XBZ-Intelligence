@@ -1,0 +1,334 @@
+{
+  "01614322788": {
+    "data": {
+      "phone": "01614322788",
+      "score": 97.14,
+      "status": "Safe",
+      "source": "database_cache",
+      "total_parcel": 86,
+      "success_parcel": 77,
+      "cancel_parcel": 9,
+      "unresolved_reports": 0,
+      "community_reports": [],
+      "response": {
+        "steadfast": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 30,
+            "success": 29,
+            "cancel": 1,
+            "deliveredPercentage": 97,
+            "returnPercentage": 2,
+            "response_time": 0.543
+          }
+        },
+        "pathao": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 40,
+            "success": 39,
+            "cancel": 1,
+            "deliveredPercentage": 97.5,
+            "returnPercentage": 2.5,
+            "rating": "excellent_customer",
+            "response_time": 0.687
+          }
+        },
+        "redx": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 10,
+            "success": 6,
+            "cancel": 4,
+            "deliveredPercentage": 60,
+            "returnPercentage": 40,
+            "rating": "moderate_customer",
+            "response_time": 0.288
+          }
+        },
+        "carrybee": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 6,
+            "success": 3,
+            "cancel": 3,
+            "deliveredPercentage": 50,
+            "returnPercentage": 50,
+            "response_time": 0.53
+          }
+        },
+        "paperfly": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 0,
+            "success": 0,
+            "cancel": 0,
+            "deliveredPercentage": 0,
+            "returnPercentage": 0,
+            "rating": "No Data Available",
+            "response_time": 0.364
+          }
+        }
+      }
+    },
+    "timestamp": 1792401233986
+  },
+  "01811223344": {
+    "data": {
+      "phone": "01811223344",
+      "score": 36.36,
+      "status": "High Risk",
+      "source": "live",
+      "total_parcel": 22,
+      "success_parcel": 8,
+      "cancel_parcel": 14,
+      "unresolved_reports": 1,
+      "community_reports": [
+        {
+          "id": 14,
+          "reporter_name": "Fashion Store BD",
+          "incident_type": "fake_order",
+          "title": "Customer refused delivery without answering phone",
+          "order_amount": 1850,
+          "courier_name": "steadfast",
+          "status": "verified"
+        }
+      ],
+      "response": {
+        "steadfast": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 15,
+            "success": 4,
+            "cancel": 11,
+            "deliveredPercentage": 26.67,
+            "returnPercentage": 73.33,
+            "response_time": 0.512
+          }
+        },
+        "pathao": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 7,
+            "success": 4,
+            "cancel": 3,
+            "deliveredPercentage": 57.14,
+            "returnPercentage": 42.86,
+            "rating": "bad_customer",
+            "response_time": 0.655
+          }
+        },
+        "redx": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 0,
+            "success": 0,
+            "cancel": 0,
+            "deliveredPercentage": 0,
+            "returnPercentage": 0,
+            "response_time": 0.29
+          }
+        },
+        "carrybee": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 0,
+            "success": 0,
+            "cancel": 0,
+            "deliveredPercentage": 0,
+            "returnPercentage": 0,
+            "response_time": 0.52
+          }
+        },
+        "paperfly": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 0,
+            "success": 0,
+            "cancel": 0,
+            "deliveredPercentage": 0,
+            "returnPercentage": 0,
+            "response_time": 0.35
+          }
+        }
+      }
+    },
+    "timestamp": 1792401238324
+  },
+  "01812984561": {
+    "data": {
+      "phone": "01812984561",
+      "score": 36.36,
+      "status": "High Risk",
+      "source": "live",
+      "total_parcel": 22,
+      "success_parcel": 8,
+      "cancel_parcel": 14,
+      "unresolved_reports": 1,
+      "community_reports": [
+        {
+          "id": 14,
+          "reporter_name": "Fashion Store BD",
+          "incident_type": "fake_order",
+          "title": "Customer refused delivery without answering phone",
+          "order_amount": 1850,
+          "courier_name": "steadfast",
+          "status": "verified"
+        }
+      ],
+      "response": {
+        "steadfast": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 15,
+            "success": 4,
+            "cancel": 11,
+            "deliveredPercentage": 26.67,
+            "returnPercentage": 73.33,
+            "response_time": 0.512
+          }
+        },
+        "pathao": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 7,
+            "success": 4,
+            "cancel": 3,
+            "deliveredPercentage": 57.14,
+            "returnPercentage": 42.86,
+            "rating": "bad_customer",
+            "response_time": 0.655
+          }
+        },
+        "redx": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 0,
+            "success": 0,
+            "cancel": 0,
+            "deliveredPercentage": 0,
+            "returnPercentage": 0,
+            "response_time": 0.29
+          }
+        },
+        "carrybee": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 0,
+            "success": 0,
+            "cancel": 0,
+            "deliveredPercentage": 0,
+            "returnPercentage": 0,
+            "response_time": 0.52
+          }
+        },
+        "paperfly": {
+          "status": true,
+          "message": "Successful.",
+          "data": {
+            "total": 0,
+            "success": 0,
+            "cancel": 0,
+            "deliveredPercentage": 0,
+            "returnPercentage": 0,
+            "response_time": 0.35
+          }
+        }
+      }
+    },
+    "timestamp": 1792401246842
+  },
+  "01711000000": {
+    "data": {
+      "phone": "01711000000",
+      "score": 100,
+      "source": "live",
+      "status": "Safe",
+      "response": {
+        "steadfast": {
+          "data": {
+            "total": 5,
+            "cancel": 0,
+            "success": 5,
+            "returnPercentage": 0,
+            "deliveredPercentage": 100,
+            "response_time": 0.274
+          },
+          "status": true,
+          "message": "Successful."
+        },
+        "pathao": {
+          "data": {
+            "total": 0,
+            "cancel": 0,
+            "success": 0,
+            "returnPercentage": 0,
+            "deliveredPercentage": 0,
+            "response_time": 0.24,
+            "rating": "new_customer"
+          },
+          "status": true,
+          "message": "Successful."
+        },
+        "carrybee": {
+          "data": {
+            "total": 0,
+            "cancel": 0,
+            "success": 0,
+            "returnPercentage": 0,
+            "deliveredPercentage": 0,
+            "response_time": 0.292
+          },
+          "status": true,
+          "message": "Successful."
+        },
+        "paperfly": {
+          "data": {
+            "total": 1,
+            "cancel": 0,
+            "success": 1,
+            "returnPercentage": 0,
+            "deliveredPercentage": 100,
+            "response_time": 0.251,
+            "rating": "New Customer"
+          },
+          "status": true,
+          "message": "Successful."
+        },
+        "redx": {
+          "data": {
+            "total": 0,
+            "cancel": 0,
+            "success": 0,
+            "returnPercentage": 0,
+            "deliveredPercentage": 0,
+            "response_time": 0.303,
+            "rating": "new_customer"
+          },
+          "status": true,
+          "message": "Successful."
+        }
+      },
+      "total_parcel": 6,
+      "cancel_parcel": 0,
+      "success_parcel": 6,
+      "community_reports": [],
+      "unresolved_reports": 0
+    },
+    "timestamp": 1792401614141
+  }
+}
