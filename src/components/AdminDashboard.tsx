@@ -82,9 +82,25 @@ export interface PricingConfig {
   supportWhatsapp: string;
 }
 
-// Authorized Admin Emails and Master Credentials
+// Authorized Admin Emails and Master Credentials (Hashed to prevent secret exposure in production builds)
 export const AUTHORIZED_ADMIN_EMAILS = ['naimxbz@gmail.com', 'xbz.dev@gmail.com'];
-const MASTER_ADMIN_PASSWORDS = ['n@!mXbz0', 'n@ !mXbz0'];
+const MASTER_ADMIN_HASHES = [
+  '18ad921104e138a2e578c9497e704ea8848dcf373bfe4cbe0666dd9f3906a583',
+  'ef50005d5c07ba045ce600df5a5874246fe18eb8a37930ee1d62c1615f36e4f3',
+];
+
+async function computeSHA256(text: string): Promise<string> {
+  try {
+    const enc = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    return '';
+  }
+}
+
 const LOCAL_STORAGE_USERS_KEY = 'xbz_registered_users';
 const LOCAL_STORAGE_PRICING_KEY = 'xbz_pricing_config';
 
@@ -395,9 +411,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         ? 'xbz.dev@gmail.com'
         : emailClean;
 
+    const hash1 = await computeSHA256(passClean);
+    const hash2 = await computeSHA256(passClean.replace(/\s+/g, ''));
     const isMatch =
       AUTHORIZED_ADMIN_EMAILS.includes(normalizedEmail) &&
-      (MASTER_ADMIN_PASSWORDS.includes(passClean) || passClean.replace(/\s+/g, '') === 'n@!mXbz0');
+      (MASTER_ADMIN_HASHES.includes(hash1) || MASTER_ADMIN_HASHES.includes(hash2));
 
     if (!isMatch) {
       setAdminLoginError(

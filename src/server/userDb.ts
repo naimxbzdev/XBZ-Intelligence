@@ -19,7 +19,7 @@ export interface UserRecord {
 }
 
 const ADMIN_EMAILS = ['naimxbz@gmail.com', 'xbz.dev@gmail.com'];
-const ADMIN_PASSWORD = 'n@!mXbz0';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSKEY || process.env.ADMIN_PASSWORD || 'n@!mXbz0';
 
 const INITIAL_USERS: UserRecord[] = [
   {
