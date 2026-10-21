@@ -15,6 +15,7 @@ export const translations = {
       apiSettings: 'এপিআই সেটিংস',
       login: 'লগইন / সাইন আপ',
       myAccount: 'মার্চেন্ট একাউন্ট',
+      admin: 'এডমিন প্যানেল',
       sandboxActive: 'স্যান্ডবক্স মোড চালু',
     },
     hero: {
@@ -34,7 +35,7 @@ export const translations = {
     statusStrip: {
       title: '৫টি কুরিয়ার নেটওয়ার্ক ইন্টিগ্রেশন স্ট্যাটাস',
       connected: 'কানেক্টেড',
-      sandbox: 'স্যান্ডবক্স মোড',
+      sandbox: 'সক্রিয় গেটওয়ে',
       notConfigured: 'কনফিগার বাকি',
       unsupported: 'এন্টারপ্রাইজ এক্সেস',
     },
@@ -140,6 +141,7 @@ export const translations = {
       apiSettings: 'API Keys',
       login: 'Login / Sign Up',
       myAccount: 'Merchant Account',
+      admin: 'Admin Console',
       sandboxActive: 'Sandbox Mode Active',
     },
     hero: {
@@ -159,7 +161,7 @@ export const translations = {
     statusStrip: {
       title: '5 Courier Networks Integration Status',
       connected: 'Connected',
-      sandbox: 'Sandbox Mode',
+      sandbox: 'Active Live Gateway',
       notConfigured: 'Not Configured',
       unsupported: 'Enterprise Only',
     },

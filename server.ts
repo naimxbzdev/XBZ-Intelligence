@@ -7,6 +7,8 @@ import { reportsDb } from './src/server/reportsDb.ts';
 import { paymentDb } from './src/server/paymentDb.ts';
 import { analyzePhoneNumber, normalizeBDPhone } from './src/server/analysisEngine.ts';
 import { SmartposClient } from './src/server/smartposClient.ts';
+import { userDb } from './src/server/userDb.ts';
+import { pricingDb } from './src/server/pricingDb.ts';
 import type { CourierConfig } from './src/types/intelligence.ts';
 
 dotenv.config();
@@ -282,53 +284,90 @@ app.post('/api/reports', (req: Request, res: Response) => {
   }
 });
 
-// Merchant auth mock
+// Real Persistent User Auth & Administration (Protected by userDb)
 app.post('/api/auth/login', (req: Request, res: Response) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'ইমেইল ও পাসওয়ার্ড প্রদান করুন।' });
   }
 
-  const mockUser = {
-    id: 'user_' + Math.random().toString(36).substr(2, 6),
-    name: email.split('@')[0],
-    email,
-    storeName: email.split('@')[0].toUpperCase() + ' Express',
-    apiKey: 'fraud_live_' + Buffer.from(email + Date.now()).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24),
-    plan: 'Merchant Pro',
-    checksRemaining: 2500,
-  };
+  const result = userDb.authenticate(String(email).trim(), String(password).trim());
+  if (result.error || !result.user) {
+    return res.status(401).json({ error: result.error || 'লগইন ব্যর্থ হয়েছে।' });
+  }
+
+  const safeUser = { ...result.user };
+  delete safeUser.password;
 
   return res.json({
     success: true,
-    user: mockUser,
-    token: 'jwt_' + Buffer.from(JSON.stringify(mockUser)).toString('base64'),
+    user: safeUser,
+    isAdmin: result.isAdmin,
+    token: 'jwt_' + Buffer.from(JSON.stringify(safeUser)).toString('base64'),
   });
 });
 
 app.post('/api/auth/register', (req: Request, res: Response) => {
-  const { name, email, storeName, phone } = req.body;
+  const { name, email, storeName, phone, password } = req.body;
   if (!name || !email || !storeName) {
-    return res.status(400).json({ error: 'সকল তথ্য পূরণ করা আবশ্যক।' });
+    return res.status(400).json({ error: 'সকল আবশ্যক তথ্য (নাম, ইমেইল ও শপের নাম) পূরণ করুন।' });
   }
 
-  const mockUser = {
-    id: 'user_' + Math.random().toString(36).substr(2, 6),
-    name,
-    email,
-    storeName,
-    phone: phone || '',
-    apiKey: 'fraud_live_' + Buffer.from(email + Date.now()).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24),
-    plan: 'Free Starter (100 checks/mo)',
-    checksRemaining: 100,
-  };
+  const result = userDb.register({
+    name: String(name).trim(),
+    email: String(email).trim(),
+    password: password ? String(password).trim() : 'password123',
+    phone: phone ? String(phone).trim() : '01700000000',
+    storeName: String(storeName).trim(),
+    planId: 'free',
+  });
+
+  if (result.error || !result.user) {
+    return res.status(400).json({ error: result.error || 'রেজিস্ট্রেশন সম্পন্ন করা সম্ভব হয়নি।' });
+  }
+
+  const safeUser = { ...result.user };
+  delete safeUser.password;
 
   return res.json({
     success: true,
     message: 'রেজিস্ট্রেশন সফল হয়েছে!',
-    user: mockUser,
-    token: 'jwt_' + Buffer.from(JSON.stringify(mockUser)).toString('base64'),
+    user: safeUser,
+    token: 'jwt_' + Buffer.from(JSON.stringify(safeUser)).toString('base64'),
   });
+});
+
+// Admin User Management Endpoints
+app.get('/api/admin/users', (req: Request, res: Response) => {
+  const adminEmail = req.query.adminEmail as string;
+  if (!adminEmail || !['naimxbz@gmail.com', 'xbz.dev@gmail.com'].includes(adminEmail.trim().toLowerCase())) {
+    return res.status(403).json({ error: 'এডমিন এক্সেস সংরক্ষিত।' });
+  }
+  return res.json(userDb.getAllUsers(false));
+});
+
+app.post('/api/admin/users/:id/approve', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updated = userDb.updateUser(id, { status: 'approved' });
+  if (!updated) return res.status(404).json({ error: 'User not found' });
+  return res.json({ success: true, user: updated });
+});
+
+app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const deleted = userDb.deleteUser(id);
+  if (!deleted) return res.status(400).json({ error: 'User could not be deleted or is protected master admin.' });
+  return res.json({ success: true });
+});
+
+// Admin Pricing Settings Endpoints
+app.get('/api/pricing/settings', (req: Request, res: Response) => {
+  return res.json(pricingDb.getSettings());
+});
+
+app.post('/api/admin/pricing/settings', (req: Request, res: Response) => {
+  const updated = pricingDb.updateSettings(req.body);
+  return res.json({ success: true, settings: updated });
 });
 
 // 7. Merchant Plan Payment & Upgrade Endpoints (bKash, Nagad, Rocket)

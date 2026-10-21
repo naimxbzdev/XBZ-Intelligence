@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Key, Check, Copy, LogOut, Loader2, Store, Mail, Phone, Sparkles, ShieldCheck } from 'lucide-react';
+import { X, User, Key, Check, Copy, LogOut, Loader2, Store, Mail, Phone, Sparkles, ShieldCheck, Lock } from 'lucide-react';
 import type { Language } from '../utils/translations.ts';
+import { BrandLogo } from './BrandLogo.tsx';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -8,8 +9,9 @@ interface AuthModalProps {
   lang: Language;
   user: any;
   setUser: (user: any) => void;
-  initialMode?: 'login' | 'register';
+  initialMode?: 'login' | 'register' | 'admin';
   isFromLimitBlock?: boolean;
+  onAdminLoginSuccess?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -20,8 +22,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   setUser,
   initialMode = 'login',
   isFromLimitBlock = false,
+  onAdminLoginSuccess,
 }) => {
-  const [isRegister, setIsRegister] = useState(initialMode === 'register');
+  const [mode, setMode] = useState<'login' | 'register' | 'admin'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -33,22 +36,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   useEffect(() => {
     if (initialMode) {
-      setIsRegister(initialMode === 'register');
+      setMode(initialMode);
     }
+    setError(null);
   }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
+  // Merchant or Admin Login handler
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
+      let targetEmail = email.trim();
+      // Handle admin shorthand aliases
+      if (mode === 'admin') {
+        if (targetEmail.toLowerCase() === 'naimxbz' || targetEmail.toLowerCase() === 'naim') {
+          targetEmail = 'naimxbz@gmail.com';
+        } else if (targetEmail.toLowerCase() === 'xbz.dev' || targetEmail.toLowerCase() === 'xbz') {
+          targetEmail = 'xbz.dev@gmail.com';
+        }
+      }
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: targetEmail, password: password.trim() }),
       });
 
       const data = await res.json();
@@ -56,6 +71,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       setUser(data.user);
       localStorage.setItem('xbz_user', JSON.stringify(data.user));
+
+      // If logged in user is admin, trigger redirect/tab switch to admin
+      if (data.isAdmin || ['naimxbz@gmail.com', 'xbz.dev@gmail.com'].includes(data.user.email?.toLowerCase())) {
+        if (onAdminLoginSuccess) {
+          onAdminLoginSuccess();
+        }
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || 'Error logging in');
@@ -64,6 +87,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  // Real User Registration handler (Persists in userDb and localStorage)
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -73,7 +97,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, storeName, phone }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          storeName: storeName.trim(),
+          phone: phone.trim() || '01700000000',
+          password: password.trim(),
+        }),
       });
 
       const data = await res.json();
@@ -81,29 +111,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       setUser(data.user);
       localStorage.setItem('xbz_user', JSON.stringify(data.user));
+
+      // Append to registered users list in localStorage for Admin Dashboard
+      try {
+        const stored = localStorage.getItem('xbz_registered_users');
+        const list = stored ? JSON.parse(stored) : [];
+        if (!list.some((u: any) => u.email.toLowerCase() === data.user.email.toLowerCase())) {
+          list.unshift({
+            id: data.user.id || 'usr_' + Date.now(),
+            name: data.user.name,
+            email: data.user.email,
+            phone: phone.trim() || '01700000000',
+            storeName: data.user.storeName,
+            role: 'merchant',
+            plan: data.user.plan || 'Free Starter (100 checks/mo)',
+            planId: 'free',
+            status: 'approved',
+            checksRemaining: data.user.checksRemaining || 100,
+            apiKey: data.user.apiKey || 'fraud_live_' + Date.now(),
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+          });
+          localStorage.setItem('xbz_registered_users', JSON.stringify(list));
+        }
+      } catch {
+        // ignore
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || 'Error registering');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoLogin = () => {
-    setEmail('naeem@webxpress.com.bd');
-    setPassword('demo123456');
-    const demoUser = {
-      id: 'usr_demo_882',
-      name: 'Naeem Hasan',
-      email: 'naeem@webxpress.com.bd',
-      storeName: 'WebXpress BD Hub',
-      apiKey: 'fraud_live_9a87d6e5c4b3a21098765432',
-      plan: 'Free Starter (100 checks/mo)',
-      checksRemaining: 100,
-    };
-    setUser(demoUser);
-    localStorage.setItem('xbz_user', JSON.stringify(demoUser));
-    onClose();
   };
 
   const handleLogout = () => {
@@ -138,7 +178,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {user.name ? user.name.charAt(0).toUpperCase() : 'M'}
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">{user.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-white">{user.name}</h3>
+                  {['naimxbz@gmail.com', 'xbz.dev@gmail.com'].includes(user.email?.toLowerCase()) && (
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/40 text-cyan-400">
+                      ADMIN
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-cyan-400 font-medium">{user.storeName || 'Merchant Store'}</p>
                 <p className="text-[11px] text-slate-400">{user.email}</p>
               </div>
@@ -152,7 +199,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div className="flex justify-between text-slate-400">
                 <span>{lang === 'bn' ? 'অবশিষ্ট কোরি চেক:' : 'Remaining Checks:'}</span>
                 <span className="font-mono text-cyan-300 font-bold tabular-nums">
-                  {user.checksRemaining || 100} / {user.plan?.includes('Pro') ? 2500 : 100}
+                  {user.checksRemaining > 90000 ? 'Unlimited' : `${user.checksRemaining || 100} Checks`}
                 </span>
               </div>
             </div>
@@ -179,7 +226,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="pt-2 flex justify-end">
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 rounded-xl transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>{lang === 'bn' ? 'লগআউট' : 'Logout'}</span>
@@ -187,8 +234,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           </div>
         ) : (
-          /* Login / Register Form */
+          /* Authentication Forms */
           <div className="space-y-4">
+            {/* Header Brand Logo */}
+            <div className="flex items-center justify-between pb-1">
+              <BrandLogo size="md" showTagline={false} />
+              <span className="text-[11px] font-mono text-cyan-400 font-semibold">PORTAL</span>
+            </div>
+
             {/* Limit Banner if opened due to reaching 3-search limit */}
             {isFromLimitBlock && (
               <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-start gap-2.5">
@@ -206,28 +259,76 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             )}
 
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  {isRegister
-                    ? (lang === 'bn' ? 'বিনামূল্যে মার্চেন্ট অ্যাকাউন্ট খুলুন' : 'Create Free Merchant Account')
-                    : (lang === 'bn' ? 'মার্চেন্ট লগইন' : 'Merchant Login')}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {isRegister 
-                    ? (lang === 'bn' ? '১০০টি ফ্রি চেক/মাস এবং সুরক্ষিত মার্চেন্ট প্যানেল' : '100 free checks/mo & secure merchant panel') 
-                    : (lang === 'bn' ? 'আপনার সংরক্ষিত ক্রেডেনশিয়াল দিয়ে প্রবেশ করুন' : 'Enter with your saved credentials')}
-                </p>
-              </div>
+            {/* Mode Selector Tabs (Clean segmented navigation) */}
+            <div className="flex items-center p-1 bg-slate-900/90 border border-slate-800 rounded-xl text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setError(null);
+                }}
+                className={`flex-1 py-1.5 rounded-lg font-semibold transition-all ${
+                  mode === 'login'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {lang === 'bn' ? 'মার্চেন্ট লগইন' : 'Merchant Login'}
+              </button>
 
               <button
-                onClick={() => setIsRegister(!isRegister)}
-                className="text-xs text-cyan-400 hover:underline shrink-0"
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setError(null);
+                }}
+                className={`flex-1 py-1.5 rounded-lg font-semibold transition-all ${
+                  mode === 'register'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
               >
-                {isRegister
-                  ? (lang === 'bn' ? 'লগইন করুন' : 'Sign In')
-                  : (lang === 'bn' ? 'নতুন অ্যাকাউন্ট' : 'Register')}
+                {lang === 'bn' ? 'নতুন অ্যাকাউন্ট' : 'Register'}
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('admin');
+                  setError(null);
+                }}
+                className={`flex-1 py-1.5 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${
+                  mode === 'admin'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Lock className="w-3 h-3 text-rose-400" />
+                <span>{lang === 'bn' ? 'এডমিন লগইন' : 'Admin'}</span>
+              </button>
+            </div>
+
+            {/* Section Heading */}
+            <div className="border-b border-slate-800 pb-2.5">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                {mode === 'admin' ? (
+                  <>
+                    <ShieldCheck className="w-5 h-5 text-rose-400" />
+                    <span>{lang === 'bn' ? 'সিস্টেম এডমিন পোর্টাল লগইন' : 'System Admin Portal Login'}</span>
+                  </>
+                ) : mode === 'register' ? (
+                  <span>{lang === 'bn' ? 'বিনামূল্যে মার্চেন্ট অ্যাকাউন্ট খুলুন' : 'Create Free Merchant Account'}</span>
+                ) : (
+                  <span>{lang === 'bn' ? 'মার্চেন্ট অ্যাকাউন্টে প্রবেশ' : 'Sign in to Merchant Portal'}</span>
+                )}
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {mode === 'admin'
+                  ? (lang === 'bn' ? 'শুধুমাত্র অনুমোদিত এডমিন (naimxbz@gmail.com / xbz.dev@gmail.com)' : 'Strictly authorized administrators only')
+                  : mode === 'register'
+                  ? (lang === 'bn' ? '১০০টি ফ্রি চেক/মাস এবং নিজস্ব এপিআই কি' : '100 free checks/mo and merchant API key')
+                  : (lang === 'bn' ? 'আপনার নিবন্ধিত ইমেইল ও পাসওয়ার্ড প্রদান করুন' : 'Enter your registered email and password')}
+              </p>
             </div>
 
             {error && (
@@ -236,11 +337,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </p>
             )}
 
-            <form onSubmit={isRegister ? handleRegister : handleLogin} className="space-y-3 text-xs">
-              {isRegister && (
+            {/* Main Form */}
+            <form onSubmit={mode === 'register' ? handleRegister : handleLogin} className="space-y-3 text-xs">
+              {mode === 'register' && (
                 <>
                   <div>
-                    <label className="text-slate-300 block mb-1">
+                    <label className="text-slate-300 block mb-1 font-medium">
                       {lang === 'bn' ? 'আপনার নাম *' : 'Full Name *'}
                     </label>
                     <input
@@ -254,7 +356,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-slate-300 block mb-1">
+                    <label className="text-slate-300 block mb-1 font-medium">
                       {lang === 'bn' ? 'ই-কমার্স শপের নাম *' : 'Store / Brand Name *'}
                     </label>
                     <input
@@ -268,7 +370,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-slate-300 block mb-1">
+                    <label className="text-slate-300 block mb-1 font-medium">
                       {lang === 'bn' ? 'মোবাইল নম্বর (ঐচ্ছিক)' : 'Mobile Number (Optional)'}
                     </label>
                     <input
@@ -283,22 +385,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
 
               <div>
-                <label className="text-slate-300 block mb-1">
-                  {lang === 'bn' ? 'ইমেইল অ্যাড্রেস *' : 'Email Address *'}
+                <label className="text-slate-300 block mb-1 font-medium">
+                  {mode === 'admin'
+                    ? (lang === 'bn' ? 'এডমিন ইমেইল বা ইউজারনেম *' : 'Admin Username or Email *')
+                    : (lang === 'bn' ? 'ইমেইল অ্যাড্রেস *' : 'Email Address *')}
                 </label>
                 <input
-                  type="email"
+                  type={mode === 'admin' ? 'text' : 'email'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="merchant@example.com"
+                  placeholder={mode === 'admin' ? 'naimxbz@gmail.com' : 'merchant@example.com'}
                   className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg outline-none focus:border-cyan-400"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-slate-300 block mb-1">
-                  {lang === 'bn' ? 'পাসওয়ার্ড *' : 'Password *'}
+                <label className="text-slate-300 block mb-1 font-medium">
+                  {mode === 'admin'
+                    ? (lang === 'bn' ? 'এডমিন সিক্রেট পাসওয়ার্ড *' : 'Admin Secret Password *')
+                    : (lang === 'bn' ? 'পাসওয়ার্ড *' : 'Password *')}
                 </label>
                 <input
                   type="password"
@@ -313,27 +419,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded-xl font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 transition-all flex items-center justify-center gap-2 mt-4 shadow-lg shadow-cyan-500/20"
+                className={`w-full py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 mt-4 shadow-lg cursor-pointer ${
+                  mode === 'admin'
+                    ? 'text-white bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 shadow-rose-950/50'
+                    : 'text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 shadow-cyan-500/20'
+                }`}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 <span>
-                  {isRegister
+                  {mode === 'admin'
+                    ? (lang === 'bn' ? 'এডমিন প্যানেলে প্রবেশ করুন' : 'Authenticate as Admin')
+                    : mode === 'register'
                     ? (lang === 'bn' ? 'অ্যাকাউন্ট তৈরি করুন (১০০ ফ্রি চেক)' : 'Create Free Account (100 checks)')
                     : (lang === 'bn' ? 'লগইন করুন' : 'Sign In')}
                 </span>
               </button>
             </form>
-
-            {/* Quick Demo Login helper */}
-            <div className="pt-2 border-t border-slate-800 text-center">
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                className="text-xs text-slate-400 hover:text-cyan-300 transition-colors underline"
-              >
-                {lang === 'bn' ? '১-ক্লিকে ডেমো মার্চেন্ট অ্যাকাউন্ট দিয়ে ঢুকুন' : 'Sign in as Demo Merchant (1-Click)'}
-              </button>
-            </div>
           </div>
         )}
       </div>

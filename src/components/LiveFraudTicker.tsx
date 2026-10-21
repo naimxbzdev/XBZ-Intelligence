@@ -442,7 +442,7 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
 }) => {
   const [tickerItems, setTickerItems] = useState<FraudTickerItem[]>(UNIQUE_FRAUD_STREAM);
   const [isPaused, setIsPaused] = useState(false);
-  // Speeds: 'slow' = 210s, 'extra-slow' = 290s
+  // Speeds: 'slow' = 420s, 'extra-slow' = 580s (super slow, smooth reading experience)
   const [speedMode, setSpeedMode] = useState<'slow' | 'extra-slow'>('slow');
 
   // Fetch newly reported items from backend and strictly deduplicate by phone & id
@@ -484,7 +484,7 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
     fetchFreshReports();
   }, []);
 
-  const durationSec = speedMode === 'extra-slow' ? 290 : 210;
+  const durationSec = speedMode === 'extra-slow' ? 580 : 420;
 
   return (
     <div 
@@ -492,13 +492,13 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
       style={{ '--ticker-duration': `${durationSec}s` } as React.CSSProperties}
     >
       <div className="flex items-center">
-        {/* Pinned Left Label: Badge with pulse indicator and total unique counter */}
-        <div className="relative z-20 flex items-center gap-2 pl-3 sm:pl-5 pr-3 sm:pr-5 bg-gradient-to-r from-[#080d1a] via-[#080d1a] to-transparent shrink-0">
+        {/* Pinned Left Label: Hidden on mobile view, visible on tablet/desktop */}
+        <div className="hidden md:flex relative z-20 items-center gap-2 pl-4 pr-3 bg-gradient-to-r from-[#080d1a] via-[#080d1a] to-transparent shrink-0">
           <span className="flex h-2.5 w-2.5 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-rose-950/90 border border-rose-500/40 text-rose-300 font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-rose-950/60 whitespace-nowrap">
+          <span className="flex px-2.5 py-1 rounded-lg bg-rose-950/90 border border-rose-500/40 text-rose-300 font-bold text-[11px] uppercase tracking-wider items-center gap-1.5 shadow-md shadow-rose-950/60 whitespace-nowrap">
             <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
             <span>{lang === 'bn' ? 'লাইভ প্রতারক সতর্কতা' : 'LIVE FRAUD TICKER'}</span>
           </span>

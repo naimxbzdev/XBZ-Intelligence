@@ -335,59 +335,6 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               <span>{inputError}</span>
             </p>
           )}
-
-          {/* Quick Demo Test Buttons */}
-          <div className="mt-5 text-left bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/80">
-            <span className="text-xs font-semibold text-slate-400 block mb-2">
-              {t.hero.quickTestTitle}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('01614322788')}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-950/30 hover:bg-emerald-900/40 border border-emerald-500/30 rounded-lg transition-colors whitespace-nowrap"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{t.hero.safeTest}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('01711223344')}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-amber-300 bg-amber-950/30 hover:bg-amber-900/40 border border-amber-500/30 rounded-lg transition-colors whitespace-nowrap"
-              >
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t.hero.modTest}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('01812984561')}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-rose-300 bg-rose-950/30 hover:bg-rose-900/40 border border-rose-500/30 rounded-lg transition-colors whitespace-nowrap"
-              >
-                <AlertOctagon className="w-3.5 h-3.5 text-rose-400" />
-                <span>{t.hero.riskTest}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('01911223344')}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-red-400 bg-red-950/50 hover:bg-red-900/60 border border-red-500/50 rounded-lg transition-colors whitespace-nowrap font-semibold"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
-                <span>{t.hero.fraudTest}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('01511223344')}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-cyan-300 bg-cyan-950/30 hover:bg-cyan-900/40 border border-cyan-500/30 rounded-lg transition-colors whitespace-nowrap"
-              >
-                <UserPlus className="w-3.5 h-3.5 text-cyan-400" />
-                <span>{t.hero.newTest}</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </section>

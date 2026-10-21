@@ -15,6 +15,8 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { PaymentModal } from './components/PaymentModal.tsx';
 import { TrustBadgeModal } from './components/TrustBadgeModal.tsx';
 import { PlanGatePaywall } from './components/PlanGatePaywall.tsx';
+import { AdminDashboard } from './components/AdminDashboard.tsx';
+import { LiveSupportButton } from './components/LiveSupportButton.tsx';
 import { Footer } from './components/Footer.tsx';
 import type { Language } from './utils/translations.ts';
 import type { PhoneAnalysisResult, CourierStatusInfo, PlanTier } from './types/intelligence.ts';
@@ -286,10 +288,10 @@ export default function App() {
   const isPaidUser = userPlan === 'pro' || userPlan === 'enterprise';
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans relative">
-      {/* Toast Notification */}
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans relative overflow-x-hidden">
+      {/* Toast Notification (Top Right to avoid floating WhatsApp button) */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-md p-4 rounded-2xl bg-gradient-to-r from-[#0d1e38] to-[#070b14] border border-cyan-500/40 shadow-2xl text-xs flex items-start gap-3 backdrop-blur-md animate-fade-in">
+        <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-md p-4 rounded-2xl bg-gradient-to-r from-[#0d1e38] to-[#070b14] border border-cyan-500/40 shadow-2xl text-xs flex items-start gap-3 backdrop-blur-md animate-fade-in">
           {toastMessage.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
           ) : toastMessage.type === 'error' ? (
@@ -489,6 +491,26 @@ export default function App() {
             user={user}
           />
         )}
+
+        {/* TAB 7: Admin Console & User Management (Protected) */}
+        {currentTab === 'admin' && (
+          <AdminDashboard
+            lang={lang}
+            user={user}
+            setUser={(u) => {
+              setUser(u);
+              if (u) {
+                showToast(
+                  lang === 'bn' 
+                    ? `এডমিন হিসেবে সংযুক্ত: ${u.email}` 
+                    : `Authenticated as administrator: ${u.email}`,
+                  'success'
+                );
+              }
+            }}
+            onNavigateHome={() => setCurrentTab('search')}
+          />
+        )}
       </main>
 
       {/* Modals */}
@@ -554,7 +576,11 @@ export default function App() {
         }}
         initialMode={authModalMode}
         isFromLimitBlock={isAuthFromLimit}
+        onAdminLoginSuccess={() => setCurrentTab('admin')}
       />
+
+      {/* Persistent 24/7 WhatsApp Live Support Floating Button */}
+      <LiveSupportButton lang={lang} />
 
       {/* Professional Footer */}
       <Footer 

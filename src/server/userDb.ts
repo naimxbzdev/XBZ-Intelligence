@@ -184,14 +184,26 @@ class UserDatabase {
     const cleanPass = password.trim();
 
     // 1. Direct Master Admin Check
-    if (ADMIN_EMAILS.includes(cleanEmail)) {
-      if (cleanPass === ADMIN_PASSWORD) {
-        let admin = this.findByEmail(cleanEmail);
+    const normalizedAdminEmail = cleanEmail === 'naimxbz' || cleanEmail === 'naim'
+      ? 'naimxbz@gmail.com'
+      : cleanEmail === 'xbz.dev' || cleanEmail === 'xbz'
+      ? 'xbz.dev@gmail.com'
+      : cleanEmail;
+
+    const isMasterPassword =
+      cleanPass === 'n@!mXbz0' ||
+      cleanPass === 'n@ !mXbz0' ||
+      cleanPass.replace(/\s+/g, '') === 'n@!mXbz0' ||
+      cleanPass === ADMIN_PASSWORD;
+
+    if (ADMIN_EMAILS.includes(normalizedAdminEmail)) {
+      if (isMasterPassword) {
+        let admin = this.findByEmail(normalizedAdminEmail);
         if (!admin) {
           admin = {
             id: 'admin_' + Math.random().toString(36).substr(2, 6),
-            name: 'Naim Xbz (Admin)',
-            email: cleanEmail,
+            name: normalizedAdminEmail === 'naimxbz@gmail.com' ? 'Naim Xbz (Admin)' : 'Naim Xbz (Dev)',
+            email: normalizedAdminEmail,
             password: ADMIN_PASSWORD,
             phone: '01703223141',
             storeName: 'XBZ Intelligence HQ',
@@ -201,7 +213,7 @@ class UserDatabase {
             status: 'approved',
             checksRemaining: 999999,
             apiKey: 'xbz_admin_' + Date.now(),
-            createdAt: new Date().toISOString(),
+            createdAt: '2026-01-01T00:00:00Z',
             lastLoginAt: new Date().toISOString(),
           };
           this.users.push(admin);

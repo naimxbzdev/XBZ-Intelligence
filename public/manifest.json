@@ -1,0 +1,18 @@
+{
+  "short_name": "XBZ Intel",
+  "name": "XBZ Intelligence - Courier Fraud Screening",
+  "description": "Courier delivery history verification & fraud screening for Bangladeshi e-commerce merchants",
+  "icons": [
+    {
+      "src": "/assets/aistudio/Futuristic_Glossy_XI_Orbital_Emblem_bbf8c8e8.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
+  "display": "standalone",
+  "orientation": "portrait"
+}
