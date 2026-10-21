@@ -16,11 +16,12 @@ import {
   Award,
   Menu,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import type { Language } from '../utils/translations.ts';
 import { translations } from '../utils/translations.ts';
 import type { PlanTier } from '../types/intelligence.ts';
-import { BrandLogo } from './BrandLogo.tsx';
 
 interface NavbarProps {
   currentTab: string;
@@ -36,6 +37,8 @@ interface NavbarProps {
   userPlan: PlanTier;
   guestSearchesCount?: number;
   isGuestLimitReached?: boolean;
+  theme?: 'dark' | 'light';
+  toggleTheme?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -49,6 +52,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   openTrustBadge,
   user,
   userPlan,
+  theme = 'dark',
+  toggleTheme,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = translations[lang];
@@ -72,17 +77,21 @@ export const Navbar: React.FC<NavbarProps> = ({
          ========================================================================= */}
       <header className="sticky top-0 z-40 w-full border-b border-cyan-500/15 bg-[#070b14]/95 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-6">
-          {/* Zone 1: Futuristic Glossy Emblem Logo & Compact High-Tech Wordmark */}
+          {/* Brand Emblem Logo (Clean emblem image without text) */}
           <button
             type="button"
             onClick={() => handleNavClick('search')}
-            className="cursor-pointer shrink-0 select-none text-left focus:outline-none"
+            className="cursor-pointer shrink-0 select-none text-left focus:outline-none flex items-center py-1"
             aria-label="XBZ Home"
           >
-            <BrandLogo size="md" showTagline={false} />
+            <img
+              src="/logo_transparent.png"
+              alt="XBZ XI Emblem"
+              className="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] transition-transform duration-300 hover:scale-105"
+            />
           </button>
 
-          {/* Zone 2: Desktop Navigation Links (Single line, whitespace-nowrap) */}
+          {/* Desktop Navigation Links (Single line, whitespace-nowrap) */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-medium">
             {/* Public Search */}
             <button
@@ -184,8 +193,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </nav>
 
-          {/* Zone 3: Actions (Upgrade, Language switcher, Auth & Mobile Menu toggle) */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Zone: Actions (Upgrade, Language switcher, Auth & Mobile Menu toggle) */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto lg:ml-0">
             {/* Active Plan Badge or Upgrade Button */}
             {user ? (
               isPaid ? (
@@ -223,6 +232,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Globe className="w-3.5 h-3.5 text-cyan-400" />
               <span>{lang === 'bn' ? 'EN' : 'বাংলা'}</span>
+            </button>
+
+            {/* Theme Toggle (Deep Dark / Light) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95"
+              title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Deep Dark Theme'}
+              aria-label="Toggle color theme"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400/20" />
+                  <span className="hidden sm:inline text-[11px] font-medium">Dark</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                  <span className="hidden sm:inline text-[11px] font-medium text-slate-700">Light</span>
+                </>
+              )}
             </button>
 
             {/* Merchant API Settings button (Desktop) */}
@@ -301,6 +331,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Key className="w-4 h-4 text-cyan-400" />
                 <span>{t.nav.apiSettings}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (toggleTheme) toggleTheme();
+                }}
+                className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-300 hover:text-white"
+              >
+                <div className="flex items-center gap-2">
+                  {theme === 'dark' ? (
+                    <Moon className="w-4 h-4 text-cyan-400" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-amber-500" />
+                  )}
+                  <span>{theme === 'dark' ? (lang === 'bn' ? 'ডিপ ডার্ক থিম' : 'Deep Dark Theme') : (lang === 'bn' ? 'লাইট থিম' : 'Light Theme')}</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 uppercase">
+                  {theme}
+                </span>
               </button>
             </div>
 

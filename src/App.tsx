@@ -62,6 +62,41 @@ export default function App() {
     }
   });
 
+  // Theme state: 'dark' (Deep Dark) | 'light' (Light Theme)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      const savedTheme = localStorage.getItem('xbz_theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+      return 'dark'; // Deep Dark default
+    } catch {
+      return 'dark';
+    }
+  });
+
+  // Sync theme with documentElement CSS classes and attributes
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.remove('dark');
+      root.classList.add('light');
+      root.setAttribute('data-theme', 'light');
+      try {
+        localStorage.setItem('xbz_theme', 'light');
+      } catch {}
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      try {
+        localStorage.setItem('xbz_theme', 'dark');
+      } catch {}
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
@@ -288,7 +323,7 @@ export default function App() {
   const isPaidUser = userPlan === 'pro' || userPlan === 'enterprise';
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans relative overflow-x-hidden transition-colors duration-200">
       {/* Toast Notification (Top Right to avoid floating WhatsApp button) */}
       {toastMessage && (
         <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-md p-4 rounded-2xl bg-gradient-to-r from-[#0d1e38] to-[#070b14] border border-cyan-500/40 shadow-2xl text-xs flex items-start gap-3 backdrop-blur-md animate-fade-in">
@@ -328,6 +363,8 @@ export default function App() {
         userPlan={userPlan}
         guestSearchesCount={guestSearchesCount}
         isGuestLimitReached={isGuestLimitReached}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
 
       {/* Live Fraud Ticker below Navbar */}

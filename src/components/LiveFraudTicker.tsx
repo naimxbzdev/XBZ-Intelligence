@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  AlertTriangle, 
   MapPin, 
   Store, 
   ShieldAlert, 
-  ArrowRight, 
   Clock, 
-  Pause, 
-  Play, 
-  Gauge, 
-  CheckCircle2, 
-  ExternalLink 
+  CheckCircle2 
 } from 'lucide-react';
 import type { Language } from '../utils/translations.ts';
 
@@ -441,9 +435,6 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
   onViewDatabase,
 }) => {
   const [tickerItems, setTickerItems] = useState<FraudTickerItem[]>(UNIQUE_FRAUD_STREAM);
-  const [isPaused, setIsPaused] = useState(false);
-  // Speeds: 'slow' = 420s, 'extra-slow' = 580s (super slow, smooth reading experience)
-  const [speedMode, setSpeedMode] = useState<'slow' | 'extra-slow'>('slow');
 
   // Fetch newly reported items from backend and strictly deduplicate by phone & id
   useEffect(() => {
@@ -484,7 +475,7 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
     fetchFreshReports();
   }, []);
 
-  const durationSec = speedMode === 'extra-slow' ? 580 : 420;
+  const durationSec = 420;
 
   return (
     <div 
@@ -517,7 +508,7 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
 
           {/* Marquee Track with CSS var duration */}
           <div 
-            className={`animate-ticker-marquee flex items-center gap-6 cursor-pointer ${isPaused ? 'is-paused' : ''}`}
+            className="animate-ticker-marquee flex items-center gap-6 cursor-pointer"
           >
             {/* Sequence 1: All 40 completely unique items */}
             {tickerItems.map((item) => (
@@ -609,53 +600,6 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Pinned Right Controls: Pause/Play, Speed Toggle & Action Buttons */}
-        <div className="relative z-20 flex items-center gap-1.5 sm:gap-2 pl-3 pr-3 sm:pr-5 bg-gradient-to-l from-[#080d1a] via-[#080d1a] to-transparent shrink-0">
-          {/* Pause / Play toggle */}
-          <button
-            type="button"
-            onClick={() => setIsPaused(!isPaused)}
-            className="p-1 sm:px-2 sm:py-1 rounded-md text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center gap-1 transition-colors"
-            title={isPaused ? 'Resume ticker' : 'Pause ticker'}
-          >
-            {isPaused ? <Play className="w-3 h-3 text-emerald-400" /> : <Pause className="w-3 h-3 text-amber-400" />}
-            <span className="hidden md:inline">{isPaused ? (lang === 'bn' ? 'চালু' : 'Play') : (lang === 'bn' ? 'বিরতি' : 'Pause')}</span>
-          </button>
-
-          {/* Speed Toggle: Slow / Extra Slow */}
-          <button
-            type="button"
-            onClick={() => setSpeedMode(speedMode === 'slow' ? 'extra-slow' : 'slow')}
-            className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-mono font-medium text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 hover:border-cyan-400 transition-colors"
-            title="Toggle ticker crawling speed"
-          >
-            <Gauge className="w-3 h-3 text-cyan-400" />
-            <span>{speedMode === 'slow' ? (lang === 'bn' ? 'স্লো' : 'Slow') : (lang === 'bn' ? 'আরও স্লো' : 'Extra Slow')}</span>
-          </button>
-
-          <span className="text-slate-700 hidden sm:inline">|</span>
-
-          {/* Direct DB View link */}
-          <button
-            type="button"
-            onClick={onViewDatabase}
-            className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold underline transition-colors whitespace-nowrap hidden sm:flex items-center gap-1"
-          >
-            <span>{lang === 'bn' ? 'ডাটাবেস' : 'View DB'}</span>
-            <ArrowRight className="w-3 h-3" />
-          </button>
-
-          {/* Report Alert Button */}
-          <button
-            type="button"
-            onClick={onOpenReportModal}
-            className="px-2 sm:px-2.5 py-1 text-[11px] font-bold text-rose-300 hover:text-white bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap shadow-sm"
-          >
-            <AlertTriangle className="w-3 h-3" />
-            <span>{lang === 'bn' ? 'রিপোর্ট' : 'Report'}</span>
-          </button>
         </div>
       </div>
     </div>
