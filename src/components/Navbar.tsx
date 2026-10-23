@@ -18,6 +18,7 @@ import {
   X,
   Sun,
   Moon,
+  Bot,
 } from 'lucide-react';
 import type { Language } from '../utils/translations.ts';
 import { translations } from '../utils/translations.ts';
@@ -351,6 +352,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {theme}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('open-xbz-ai-chat'));
+                  setMobileMenuOpen(false);
+                }}
+                className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-cyan-950/80 via-indigo-950/70 to-emerald-950/70 border border-cyan-500/40 text-cyan-200 hover:text-white transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-cyan-400" />
+                  <span className="font-semibold text-xs">{lang === 'bn' ? '২৪/৭ এআই লাইভ সাপোর্ট (Gemini)' : '24/7 AI Live Support (Gemini)'}</span>
+                </div>
+                <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{lang === 'bn' ? 'লাইভ চ্যাট' : 'Live Chat'}</span>
+                </span>
+              </button>
             </div>
 
             {isAdmin && (
@@ -382,17 +401,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => handleNavClick('search')}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1.5 transition-all active:scale-90 ${
-            currentTab === 'search' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className="flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer min-h-[48px]"
+          aria-label={lang === 'bn' ? 'সার্চ' : 'Search'}
         >
-          <div className="relative">
+          <div className={`flex items-center justify-center px-3.5 py-1 rounded-full transition-all ${
+            currentTab === 'search' ? 'bg-cyan-500/25 text-cyan-300 shadow-sm shadow-cyan-500/20' : 'text-slate-400'
+          }`}>
             <Search className="w-5 h-5" />
-            {currentTab === 'search' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
-            )}
           </div>
-          <span className="text-[10px] mt-1 tracking-tight leading-none">
+          <span className={`text-[10px] mt-1 tracking-tight leading-none ${
+            currentTab === 'search' ? 'text-cyan-300 font-bold' : 'text-slate-400 font-medium'
+          }`}>
             {lang === 'bn' ? 'সার্চ' : 'Search'}
           </span>
         </button>
@@ -401,17 +420,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => handleNavClick('batch')}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1.5 transition-all active:scale-90 ${
-            currentTab === 'batch' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className="flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer min-h-[48px]"
+          aria-label={lang === 'bn' ? 'বাল্ক' : 'Batch'}
         >
-          <div className="relative">
+          <div className={`flex items-center justify-center px-3.5 py-1 rounded-full transition-all ${
+            currentTab === 'batch' ? 'bg-cyan-500/25 text-cyan-300 shadow-sm shadow-cyan-500/20' : 'text-slate-400'
+          }`}>
             <Layers className="w-5 h-5" />
-            {currentTab === 'batch' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
-            )}
           </div>
-          <span className="text-[10px] mt-1 tracking-tight leading-none">
+          <span className={`text-[10px] mt-1 tracking-tight leading-none ${
+            currentTab === 'batch' ? 'text-cyan-300 font-bold' : 'text-slate-400 font-medium'
+          }`}>
             {lang === 'bn' ? 'বাল্ক' : 'Batch'}
           </span>
         </button>
@@ -420,17 +439,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => handleNavClick('community')}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1.5 transition-all active:scale-90 ${
-            currentTab === 'community' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className="flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer min-h-[48px]"
+          aria-label={lang === 'bn' ? 'প্রতারক' : 'Fraud DB'}
         >
-          <div className="relative">
+          <div className={`flex items-center justify-center px-3.5 py-1 rounded-full transition-all ${
+            currentTab === 'community' ? 'bg-cyan-500/25 text-cyan-300 shadow-sm shadow-cyan-500/20' : 'text-slate-400'
+          }`}>
             <Database className="w-5 h-5" />
-            {currentTab === 'community' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
-            )}
           </div>
-          <span className="text-[10px] mt-1 tracking-tight leading-none">
+          <span className={`text-[10px] mt-1 tracking-tight leading-none ${
+            currentTab === 'community' ? 'text-cyan-300 font-bold' : 'text-slate-400 font-medium'
+          }`}>
             {lang === 'bn' ? 'প্রতারক' : 'Fraud DB'}
           </span>
         </button>
@@ -439,17 +458,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => handleNavClick('pricing')}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1.5 transition-all active:scale-90 ${
-            currentTab === 'pricing' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className="flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer min-h-[48px]"
+          aria-label={lang === 'bn' ? 'প্যাকেজ' : 'Pricing'}
         >
-          <div className="relative">
+          <div className={`flex items-center justify-center px-3.5 py-1 rounded-full transition-all ${
+            currentTab === 'pricing' ? 'bg-cyan-500/25 text-cyan-300 shadow-sm shadow-cyan-500/20' : 'text-slate-400'
+          }`}>
             <Tag className="w-5 h-5" />
-            {currentTab === 'pricing' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
-            )}
           </div>
-          <span className="text-[10px] mt-1 tracking-tight leading-none">
+          <span className={`text-[10px] mt-1 tracking-tight leading-none ${
+            currentTab === 'pricing' ? 'text-cyan-300 font-bold' : 'text-slate-400 font-medium'
+          }`}>
             {lang === 'bn' ? 'প্যাকেজ' : 'Pricing'}
           </span>
         </button>
@@ -459,17 +478,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => handleNavClick('admin')}
-            className={`flex flex-col items-center justify-center flex-1 h-full py-1.5 transition-all active:scale-90 ${
-              currentTab === 'admin' ? 'text-cyan-400 font-bold' : 'text-cyan-300/80 hover:text-cyan-200'
-            }`}
+            className="flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer min-h-[48px]"
+            aria-label={lang === 'bn' ? 'এডমিন' : 'Admin'}
           >
-            <div className="relative">
-              <ShieldCheck className="w-5 h-5 text-cyan-400" />
-              {currentTab === 'admin' && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
-              )}
+            <div className={`flex items-center justify-center px-3.5 py-1 rounded-full transition-all ${
+              currentTab === 'admin' ? 'bg-cyan-500/25 text-cyan-300 shadow-sm shadow-cyan-500/20' : 'text-cyan-400/80'
+            }`}>
+              <ShieldCheck className="w-5 h-5" />
             </div>
-            <span className="text-[10px] mt-1 tracking-tight leading-none">
+            <span className={`text-[10px] mt-1 tracking-tight leading-none ${
+              currentTab === 'admin' ? 'text-cyan-300 font-bold' : 'text-cyan-400/80 font-medium'
+            }`}>
               {lang === 'bn' ? 'এডমিন' : 'Admin'}
             </span>
           </button>
@@ -477,10 +496,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={openTrustBadge}
-            className="flex flex-col items-center justify-center flex-1 h-full py-1.5 transition-all active:scale-90 text-cyan-300 hover:text-white"
+            className="flex flex-col items-center justify-center flex-1 h-full py-1 transition-all active:scale-95 cursor-pointer min-h-[48px]"
+            aria-label={lang === 'bn' ? 'সিল' : 'Seal'}
           >
-            <Award className="w-5 h-5 text-cyan-400" />
-            <span className="text-[10px] mt-1 tracking-tight leading-none">
+            <div className="flex items-center justify-center px-3.5 py-1 rounded-full text-cyan-400 hover:text-white transition-all">
+              <Award className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] mt-1 tracking-tight leading-none text-cyan-300 font-medium">
               {lang === 'bn' ? 'সিল' : 'Seal'}
             </span>
           </button>

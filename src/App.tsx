@@ -19,8 +19,10 @@ import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { LiveSupportButton } from './components/LiveSupportButton.tsx';
 import { Footer } from './components/Footer.tsx';
 import type { Language } from './utils/translations.ts';
-import type { PhoneAnalysisResult, CourierStatusInfo, PlanTier } from './types/intelligence.ts';
+import type { PhoneAnalysisResult, CourierStatusInfo, PlanTier, RecentSearchItem } from './types/intelligence.ts';
+import { safeApiFetch } from './utils/apiClient.ts';
 import { CheckCircle2, AlertOctagon, X, Bell } from 'lucide-react';
+
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>('search');
@@ -61,6 +63,62 @@ export default function App() {
       return 0;
     }
   });
+
+  // Recent Searches state: Last 5 phone numbers checked in current session (stored in localStorage)
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('xbz_recent_searches');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addRecentSearch = (phone: string, resultData?: PhoneAnalysisResult) => {
+    try {
+      const cleanDigits = phone.replace(/\D/g, '');
+      const validPhone = cleanDigits.startsWith('880') ? cleanDigits.slice(2) : cleanDigits;
+      if (!validPhone) return;
+
+      setRecentSearches((prev) => {
+        // Remove existing item if searched previously so it is moved to top
+        const filtered = prev.filter((item) => item.phone !== validPhone);
+        const newItem: RecentSearchItem = {
+          phone: validPhone,
+          operator: resultData?.operator,
+          status: resultData?.status,
+          riskLevel: resultData?.riskLevel,
+          score: resultData?.score,
+          deliveryRate: resultData?.deliveryRate,
+          searchedAt: Date.now(),
+        };
+        const updated = [newItem, ...filtered].slice(0, 5); // Keep strictly the last 5
+        localStorage.setItem('xbz_recent_searches', JSON.stringify(updated));
+        return updated;
+      });
+    } catch (e) {
+      console.warn('Error saving recent searches to localStorage:', e);
+    }
+  };
+
+  const handleClearRecentSearches = () => {
+    try {
+      localStorage.removeItem('xbz_recent_searches');
+    } catch {}
+    setRecentSearches([]);
+    showToast(lang === 'bn' ? 'সাম্প্রতিক সার্চ তালিকা মুছে ফেলা হয়েছে।' : 'Recent searches cleared.', 'info');
+  };
+
+  const handleRemoveRecentSearch = (phoneToRemove: string) => {
+    try {
+      setRecentSearches((prev) => {
+        const updated = prev.filter((item) => item.phone !== phoneToRemove);
+        localStorage.setItem('xbz_recent_searches', JSON.stringify(updated));
+        return updated;
+      });
+    } catch {}
+  };
+
 
   // Theme state: 'dark' (Deep Dark) | 'light' (Light Theme)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -187,18 +245,15 @@ export default function App() {
     setCurrentTab('search');
 
     try {
-      const res = await fetch('/api/check-phone', {
+      const data = await safeApiFetch<PhoneAnalysisResult>('/api/check-phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
+        allowFallback: true,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'যাচাই সম্পন্ন করা সম্ভব হয়নি।');
-      }
-
       setSearchResult(data);
+      addRecentSearch(data.phone || phone, data);
 
       // Decrement searches / increment guest count
       if (!user) {
@@ -367,18 +422,20 @@ export default function App() {
         toggleTheme={toggleTheme}
       />
 
-      {/* Live Fraud Ticker below Navbar */}
-      <LiveFraudTicker
-        lang={lang}
-        onOpenReportModal={() => handleOpenReportModal()}
-        onViewDatabase={() => {
-          if (isPaidUser) {
-            setCurrentTab('community');
-          } else {
-            setCurrentTab('community');
-          }
-        }}
-      />
+      {/* Contained Live Fraud Ticker Wrapper with strict viewport boundary */}
+      <div className="w-full max-w-full overflow-hidden relative">
+        <LiveFraudTicker
+          lang={lang}
+          onOpenReportModal={() => handleOpenReportModal()}
+          onViewDatabase={() => {
+            if (isPaidUser) {
+              setCurrentTab('community');
+            } else {
+              setCurrentTab('community');
+            }
+          }}
+        />
+      </div>
 
       {/* Main View Area */}
       <main className="flex-1">
@@ -397,6 +454,9 @@ export default function App() {
               onOpenAuth={(mode) => handleOpenAuth(mode, true)}
               onOpenUpgrade={() => handleOpenPaymentModal('pro')}
               user={user}
+              recentSearches={recentSearches}
+              onClearRecentSearches={handleClearRecentSearches}
+              onRemoveRecentSearch={handleRemoveRecentSearch}
             />
 
             {/* Error banner if search fails */}
@@ -622,7 +682,7 @@ export default function App() {
       {/* Professional Footer */}
       <Footer 
         lang={lang} 
-        onNavigate={(tab) => setCurrentTab(tab)} 
+        onNavigate={(tab: string) => setCurrentTab(tab)} 
         openTrustBadge={() => setIsTrustBadgeOpen(true)}
       />
     </div>

@@ -478,38 +478,41 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
   const durationSec = 420;
 
   return (
-    <div 
-      className="relative w-full bg-[#080d1a] border-y border-rose-500/25 py-2 overflow-hidden select-none"
-      style={{ '--ticker-duration': `${durationSec}s` } as React.CSSProperties}
-    >
-      <div className="flex items-center">
-        {/* Pinned Left Label: Hidden on mobile view, visible on tablet/desktop */}
-        <div className="hidden md:flex relative z-20 items-center gap-2 pl-4 pr-3 bg-gradient-to-r from-[#080d1a] via-[#080d1a] to-transparent shrink-0">
-          <span className="flex h-2.5 w-2.5 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
-          </span>
-          <span className="flex px-2.5 py-1 rounded-lg bg-rose-950/90 border border-rose-500/40 text-rose-300 font-bold text-[11px] uppercase tracking-wider items-center gap-1.5 shadow-md shadow-rose-950/60 whitespace-nowrap">
-            <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <span>{lang === 'bn' ? 'লাইভ প্রতারক সতর্কতা' : 'LIVE FRAUD TICKER'}</span>
-          </span>
+    <div className="w-full max-w-full overflow-hidden select-none sticky top-14 sm:static z-30 pt-1.5 sm:pt-2.5 pb-1">
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div 
+          className="relative w-full max-w-full bg-[#080d1a]/95 border border-rose-500/30 rounded-full sm:rounded-2xl py-1.5 sm:py-2 px-2.5 sm:px-3.5 overflow-hidden shadow-lg shadow-rose-950/30 backdrop-blur-xl"
+          style={{ '--ticker-duration': `${durationSec}s`, contain: 'paint' } as React.CSSProperties}
+        >
+          <div className="flex items-center w-full max-w-full overflow-hidden">
+            {/* Pinned Left Label: On mobile rendered as a compact floating security chip */}
+            <div className="flex relative z-20 items-center gap-1 sm:gap-2 pr-2 sm:pr-3 bg-gradient-to-r from-[#080d1a] via-[#080d1a] to-transparent shrink-0">
+              <span className="flex h-2 w-2 sm:h-2.5 sm:w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-rose-500"></span>
+              </span>
+              <span className="flex px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full sm:rounded-lg bg-rose-950/90 border border-rose-500/40 text-rose-300 font-bold text-[9px] sm:text-[11px] uppercase tracking-wider items-center gap-1 sm:gap-1.5 shadow-sm whitespace-nowrap">
+                <ShieldAlert className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400 shrink-0" />
+                <span className="hidden sm:inline">{lang === 'bn' ? 'লাইভ ফ্রড ট্র্যাকার' : 'LIVE FRAUD TICKER'}</span>
+                <span className="sm:hidden">{lang === 'bn' ? 'লাইভ অ্যালার্ট' : 'LIVE'}</span>
+              </span>
 
-          {/* Unique Count Badge */}
-          <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-slate-400 bg-slate-900 border border-slate-800 whitespace-nowrap">
-            <span>{tickerItems.length}টি অনন্য রিপোর্ট</span>
-          </span>
-        </div>
+              {/* Unique Count Badge */}
+              <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-slate-400 bg-slate-900 border border-slate-800 whitespace-nowrap">
+                <span>{tickerItems.length}টি রিপোর্ট</span>
+              </span>
+            </div>
 
-        {/* Continuous Horizontal Marquee (Moving slowly right-to-left like a TV news ticker) */}
-        <div className="flex-1 overflow-hidden relative">
-          {/* Subtle edge fade gradients */}
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#080d1a] to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#080d1a] to-transparent z-10 pointer-events-none" />
+            {/* Continuous Horizontal Marquee strictly constrained by parent width */}
+            <div className="flex-1 w-full max-w-full overflow-hidden relative" style={{ contain: 'paint' }}>
+              {/* Subtle edge fade gradients */}
+              <div className="absolute left-0 top-0 bottom-0 w-4 sm:w-8 bg-gradient-to-r from-[#080d1a] to-transparent z-10 pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-12 bg-gradient-to-l from-[#080d1a] to-transparent z-10 pointer-events-none" />
 
-          {/* Marquee Track with CSS var duration */}
-          <div 
-            className="animate-ticker-marquee flex items-center gap-6 cursor-pointer"
-          >
+              {/* Marquee Track with CSS var duration */}
+              <div 
+                className="animate-ticker-marquee flex items-center gap-4 sm:gap-6 cursor-pointer select-none"
+              >
             {/* Sequence 1: All 40 completely unique items */}
             {tickerItems.map((item) => (
               <div
@@ -603,5 +606,7 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+</div>
+);
 };

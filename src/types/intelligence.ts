@@ -159,3 +159,14 @@ export interface CourierStatusInfo {
   officialDocUrl: string;
   requiredFields: string[];
 }
+
+export interface RecentSearchItem {
+  phone: string;
+  operator?: string;
+  status?: string;
+  riskLevel?: RiskLevel | string;
+  score?: number;
+  deliveryRate?: number;
+  searchedAt: number;
+}
+

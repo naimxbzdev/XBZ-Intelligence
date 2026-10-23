@@ -1,7 +1,25 @@
 import React, { useState } from 'react';
-import { Search, Loader2, ArrowRight, Phone, ShieldCheck, CheckCircle2, AlertTriangle, AlertOctagon, UserPlus, X, Lock, Sparkles, UserCheck, Zap } from 'lucide-react';
+import { 
+  Search, 
+  Loader2, 
+  ArrowRight, 
+  Phone, 
+  ShieldCheck, 
+  CheckCircle2, 
+  AlertTriangle, 
+  AlertOctagon, 
+  UserPlus, 
+  X, 
+  Lock, 
+  Sparkles, 
+  UserCheck, 
+  Zap, 
+  History, 
+  Trash2 
+} from 'lucide-react';
 import type { Language } from '../utils/translations.ts';
 import { translations } from '../utils/translations.ts';
+import type { RecentSearchItem } from '../types/intelligence.ts';
 
 interface HeroSearchProps {
   onSearch: (phone: string) => void;
@@ -15,6 +33,9 @@ interface HeroSearchProps {
   onOpenAuth?: (mode?: 'login' | 'register') => void;
   onOpenUpgrade?: () => void;
   user?: any;
+  recentSearches?: RecentSearchItem[];
+  onClearRecentSearches?: () => void;
+  onRemoveRecentSearch?: (phone: string) => void;
 }
 
 export const HeroSearch: React.FC<HeroSearchProps> = ({ 
@@ -29,6 +50,9 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
   onOpenAuth,
   onOpenUpgrade,
   user,
+  recentSearches = [],
+  onClearRecentSearches,
+  onRemoveRecentSearch,
 }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
@@ -133,7 +157,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenAuth && onOpenAuth('register')}
-                className="text-cyan-400 hover:text-white underline font-semibold transition-colors flex items-center gap-1"
+                className="text-cyan-400 hover:text-white underline font-semibold transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Sparkles className="w-3 h-3 text-cyan-400" />
                 <span>{lang === 'bn' ? 'ফ্রি অ্যাকাউন্ট খুলুন (১০০ চেক)' : 'Create Free Account (100 checks)'}</span>
@@ -181,7 +205,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenAuth && onOpenAuth('login')}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 border border-slate-700 transition-colors"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 border border-slate-700 transition-colors cursor-pointer"
               >
                 {lang === 'bn' ? 'লগইন করুন' : 'Sign In'}
               </button>
@@ -189,7 +213,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenAuth && onOpenAuth('register')}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 transition-all flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
+                className="px-5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 transition-all flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>{lang === 'bn' ? 'বিনামূল্যে অ্যাকাউন্ট তৈরি করুন' : 'Create Free Account'}</span>
@@ -225,7 +249,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               <button
                 type="button"
                 onClick={onOpenUpgrade}
-                className="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 transition-all flex items-center gap-1.5 shadow-lg shadow-amber-500/25"
+                className="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 transition-all flex items-center gap-1.5 shadow-lg shadow-amber-500/25 cursor-pointer"
               >
                 <Zap className="w-3.5 h-3.5 fill-current" />
                 <span>{lang === 'bn' ? 'মার্চেন্ট প্রো আপগ্রেড করুন (৳৪৯৯/মাস)' : 'Upgrade to Merchant Pro (৳499/mo)'}</span>
@@ -276,7 +300,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
                       setPhoneNumber('');
                       setInputError(null);
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-md"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-md cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -287,7 +311,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-98 text-slate-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 disabled:opacity-60 whitespace-nowrap shrink-0"
+                className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-98 text-slate-950 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 disabled:opacity-60 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 {isLoading ? (
                   <>
@@ -335,6 +359,132 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               <span>{inputError}</span>
             </p>
           )}
+
+          {/* =========================================================
+              RECENT SEARCHES (Stored in localStorage, last 5 numbers)
+              ========================================================= */}
+          {recentSearches && recentSearches.length > 0 && (
+            <div className="mt-4 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-[#0c162c] to-[#070b14] border border-cyan-500/25 shadow-xl text-left animate-fade-in">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/80">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded bg-cyan-950/60 border border-cyan-500/30 text-cyan-400">
+                    <History className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-bold text-white tracking-wide">
+                    {lang === 'bn' ? 'সাম্প্রতিক সার্চ (সর্বশেষ ৫টি)' : 'Recent Searches (Last 5)'}
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-bold">
+                    {recentSearches.length}/5
+                  </span>
+                </div>
+
+                {onClearRecentSearches && (
+                  <button
+                    type="button"
+                    onClick={onClearRecentSearches}
+                    className="text-[11px] text-slate-400 hover:text-rose-300 flex items-center gap-1 transition-colors px-2 py-0.5 rounded hover:bg-slate-800/60 cursor-pointer"
+                    title={lang === 'bn' ? 'সকল সাম্প্রতিক সার্চ মুছুন' : 'Clear search history'}
+                  >
+                    <Trash2 className="w-3 h-3 text-slate-500 hover:text-rose-400" />
+                    <span>{lang === 'bn' ? 'মুছে ফেলুন' : 'Clear'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Chips for the last 5 numbers */}
+              <div className="flex flex-wrap gap-2">
+                {recentSearches.map((item) => {
+                  const isHigh = item.riskLevel === 'high' || item.riskLevel === 'blacklisted';
+                  const isMedium = item.riskLevel === 'medium';
+                  const isSafe = item.riskLevel === 'low';
+
+                  return (
+                    <div
+                      key={item.phone}
+                      className="group inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-700/70 hover:border-cyan-400/50 shadow-sm transition-all"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleQuickSelect(item.phone)}
+                        className="flex items-center gap-1.5 text-left cursor-pointer"
+                        title={lang === 'bn' ? `${item.phone} পুনরায় চেক করুন` : `Re-check ${item.phone}`}
+                      >
+                        <Phone className="w-3 h-3 text-cyan-400 shrink-0 group-hover:scale-110 transition-transform" />
+                        <span className="font-mono text-xs font-bold text-slate-100 group-hover:text-cyan-300 transition-colors">
+                          {item.phone}
+                        </span>
+
+                        {item.operator && (
+                          <span className="text-[10px] text-slate-400 font-medium px-1 rounded bg-slate-800 border border-slate-700/60">
+                            {item.operator}
+                          </span>
+                        )}
+
+                        {item.status && (
+                          <span
+                            className={`text-[10px] font-semibold px-1.5 py-0.2 rounded border ${
+                              isHigh
+                                ? 'bg-rose-950/60 text-rose-300 border-rose-500/40'
+                                : isMedium
+                                ? 'bg-amber-950/60 text-amber-300 border-amber-500/40'
+                                : isSafe
+                                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                                : 'bg-cyan-950/60 text-cyan-300 border-cyan-500/40'
+                            }`}
+                          >
+                            {item.status}
+                          </span>
+                        )}
+                      </button>
+
+                      {onRemoveRecentSearch && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveRecentSearch(item.phone);
+                          }}
+                          className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer ml-0.5"
+                          title={lang === 'bn' ? 'তালিকা থেকে বাদ দিন' : 'Remove this search'}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Demo Sample Numbers */}
+          <div className="mt-3.5 flex flex-wrap items-center justify-center gap-1.5 text-xs">
+            <span className="text-slate-400 text-[11px] font-medium mr-1 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>{lang === 'bn' ? 'দ্রুত টেস্ট করতে ক্লিক করুন:' : 'Sample Numbers:'}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => handleQuickSelect('01614322788')}
+              className="px-2.5 py-1 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono font-medium transition-colors cursor-pointer"
+            >
+              01614322788 ({lang === 'bn' ? 'নিরাপদ ৯৭%' : 'Safe 97%'})
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickSelect('01711223344')}
+              className="px-2.5 py-1 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 text-amber-300 text-[11px] font-mono font-medium transition-colors cursor-pointer"
+            >
+              01711223344 ({lang === 'bn' ? 'মাঝারি ৭১%' : 'Mod 71%'})
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickSelect('01812984561')}
+              className="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-300 text-[11px] font-mono font-medium transition-colors cursor-pointer"
+            >
+              01812984561 ({lang === 'bn' ? 'উচ্চ ঝুঁকি ৩৬%' : 'Risk 36%'})
+            </button>
+          </div>
         </div>
       </div>
     </section>

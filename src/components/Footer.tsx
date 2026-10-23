@@ -99,6 +99,15 @@ export const Footer: React.FC<FooterProps> = ({ lang, onNavigate, openTrustBadge
                   </button>
                 </li>
               )}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-xbz-ai-chat'))}
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 font-medium"
+                >
+                  <span>🤖 {lang === 'bn' ? '২৪/৭ এআই লাইভ সাপোর্ট' : '24/7 AI Live Support'}</span>
+                </button>
+              </li>
             </ul>
           </div>
 
