@@ -63,17 +63,56 @@ class PaymentDatabase {
     return [...this.payments];
   }
 
-  public addPayment(payment: Omit<PaymentSubmission, 'id' | 'status' | 'submittedAt'>): PaymentSubmission {
+  public getPaymentById(id: string): PaymentSubmission | undefined {
+    return this.payments.find((p) => p.id === id);
+  }
+
+  public addPayment(
+    payment: Omit<PaymentSubmission, 'id' | 'status' | 'submittedAt'> & { status?: 'verified' | 'pending' | 'rejected' }
+  ): PaymentSubmission {
     const newPayment: PaymentSubmission = {
       ...payment,
       id: 'pay_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4),
-      status: 'verified', // instant automatic activation upon TrxID submission
+      status: payment.status || 'pending',
       submittedAt: new Date().toISOString(),
     };
 
     this.payments.unshift(newPayment);
     this.saveToDisk();
     return newPayment;
+  }
+
+  public updatePaymentStatus(
+    id: string,
+    status: 'verified' | 'pending' | 'rejected',
+    meta?: { rejectionReason?: string; customLimitGranted?: number }
+  ): PaymentSubmission | null {
+    const payment = this.payments.find((p) => p.id === id);
+    if (!payment) return null;
+
+    payment.status = status;
+    if (status === 'verified') {
+      payment.approvedAt = new Date().toISOString();
+      if (meta?.customLimitGranted !== undefined) {
+        payment.customLimitGranted = meta.customLimitGranted;
+      }
+    } else if (status === 'rejected') {
+      payment.rejectedAt = new Date().toISOString();
+      if (meta?.rejectionReason) {
+        payment.rejectionReason = meta.rejectionReason;
+      }
+    }
+
+    this.saveToDisk();
+    return payment;
+  }
+
+  public deletePayment(id: string): boolean {
+    const index = this.payments.findIndex((p) => p.id === id);
+    if (index === -1) return false;
+    this.payments.splice(index, 1);
+    this.saveToDisk();
+    return true;
   }
 }
 

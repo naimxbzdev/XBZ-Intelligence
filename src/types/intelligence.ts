@@ -78,7 +78,11 @@ export interface PaymentSubmission {
   senderNumber: string;
   transactionId: string;
   userEmail?: string;
-  status: 'verified' | 'pending';
+  status: 'verified' | 'pending' | 'rejected';
+  rejectionReason?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  customLimitGranted?: number;
   submittedAt: string;
 }
 
@@ -169,4 +173,18 @@ export interface RecentSearchItem {
   deliveryRate?: number;
   searchedAt: number;
 }
+
+export interface SmartposKeyConfig {
+  id: string;
+  name: string;
+  apiKey: string;
+  domain?: string;
+  monthlyLimit: number;
+  usageCount: number;
+  status: 'active' | 'exhausted' | 'disabled' | 'error';
+  lastUsedAt?: string;
+  lastError?: string;
+  createdAt: string;
+}
+
 

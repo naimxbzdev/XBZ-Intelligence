@@ -10,6 +10,7 @@ import { analyzePhoneNumber, normalizeBDPhone } from './src/server/analysisEngin
 import { SmartposClient } from './src/server/smartposClient.ts';
 import { userDb } from './src/server/userDb.ts';
 import { pricingDb } from './src/server/pricingDb.ts';
+import { smartposKeyManager } from './src/server/smartposKeyManager.ts';
 import type { CourierConfig } from './src/types/intelligence.ts';
 
 dotenv.config();
@@ -363,11 +364,106 @@ app.post('/api/admin/users/:id/approve', (req: Request, res: Response) => {
   return res.json({ success: true, user: updated });
 });
 
+app.post('/api/admin/users/:id/ban', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updated = userDb.banUser(id);
+  if (!updated) return res.status(400).json({ error: 'মার্চেন্টকে ব্যান করা সম্ভব হয়নি অথবা এটি প্রধান এডমিন একাউন্ট।' });
+  return res.json({ success: true, message: 'মার্চেন্ট একাউন্ট সফলভাবে ব্যান করা হয়েছে।', user: updated });
+});
+
+app.post('/api/admin/users/:id/unban', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updated = userDb.unbanUser(id);
+  if (!updated) return res.status(404).json({ error: 'User not found' });
+  return res.json({ success: true, message: 'মার্চেন্ট একাউন্ট সক্রিয় করা হয়েছে।', user: updated });
+});
+
+app.post('/api/admin/users/:id/update-plan', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { planId, planName, checksRemaining, status } = req.body;
+  if (!planId) {
+    return res.status(400).json({ error: 'প্যাকেজ আইডি প্রদান করা আবশ্যক।' });
+  }
+  const updated = userDb.updatePlanAndLimits(
+    id,
+    planId,
+    planName,
+    typeof checksRemaining === 'number' ? checksRemaining : undefined
+  );
+  if (!updated) return res.status(404).json({ error: 'User not found' });
+
+  if (status && ['approved', 'pending', 'suspended'].includes(status)) {
+    userDb.updateUser(id, { status });
+  }
+
+  const finalUser = userDb.findById(id);
+  return res.json({ success: true, message: 'মার্চেন্ট প্যাকেজ ও লিমিট সফলভাবে হালনাগাদ করা হয়েছে।', user: finalUser });
+});
+
 app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const deleted = userDb.deleteUser(id);
   if (!deleted) return res.status(400).json({ error: 'User could not be deleted or is protected master admin.' });
-  return res.json({ success: true });
+  return res.json({ success: true, message: 'মার্চেন্ট সফলভাবে মুছে ফেলা হয়েছে।' });
+});
+
+// Admin Package / Payment Requests Endpoints
+app.get('/api/admin/packages', (req: Request, res: Response) => {
+  return res.json(paymentDb.getAllPayments());
+});
+
+app.post('/api/admin/packages/:id/approve', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { customLimitGranted } = req.body || {};
+  const payment = paymentDb.getPaymentById(id);
+  if (!payment) return res.status(404).json({ error: 'Package request not found' });
+
+  const updatedPayment = paymentDb.updatePaymentStatus(id, 'verified', {
+    customLimitGranted: typeof customLimitGranted === 'number' ? customLimitGranted : undefined,
+  });
+
+  let updatedUser = null;
+  if (payment.userEmail) {
+    const user = userDb.findByEmail(payment.userEmail);
+    if (user) {
+      const planId = payment.planId || 'pro';
+      const planName = payment.planName || (planId === 'enterprise' ? 'Enterprise Unlimited' : 'Merchant Pro (2,500 checks)');
+      const checksLimit = typeof customLimitGranted === 'number' && !isNaN(customLimitGranted)
+        ? customLimitGranted
+        : (planId === 'enterprise' ? 99999 : 2500);
+
+      updatedUser = userDb.updatePlanAndLimits(user.id, planId, planName, checksLimit);
+    }
+  }
+
+  return res.json({
+    success: true,
+    message: 'প্যাকেজ রিকোয়েস্ট সফলভাবে অনুমোদিত হয়েছে এবং গ্রাহকের লিমিট যুক্ত হয়েছে।',
+    payment: updatedPayment,
+    user: updatedUser,
+  });
+});
+
+app.post('/api/admin/packages/:id/reject', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { rejectionReason } = req.body || {};
+  const updatedPayment = paymentDb.updatePaymentStatus(id, 'rejected', {
+    rejectionReason: rejectionReason || 'এডমিন কর্তৃক পেমেন্ট ভেরিফিকেশন বাতিল করা হয়েছে।',
+  });
+  if (!updatedPayment) return res.status(404).json({ error: 'Package request not found' });
+
+  return res.json({
+    success: true,
+    message: 'প্যাকেজ রিকোয়েস্ট বাতিল করা হয়েছে।',
+    payment: updatedPayment,
+  });
+});
+
+app.delete('/api/admin/packages/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const deleted = paymentDb.deletePayment(id);
+  if (!deleted) return res.status(404).json({ error: 'Package request not found' });
+  return res.json({ success: true, message: 'প্যাকেজ রিকোয়েস্ট সফলভাবে মুছে ফেলা হয়েছে।' });
 });
 
 // Admin Pricing Settings Endpoints
@@ -378,6 +474,86 @@ app.get('/api/pricing/settings', (req: Request, res: Response) => {
 app.post('/api/admin/pricing/settings', (req: Request, res: Response) => {
   const updated = pricingDb.updateSettings(req.body);
   return res.json({ success: true, settings: updated });
+});
+
+// Admin SmartPOS Multi-API Key Pool & Auto-Failover Endpoints
+app.get('/api/admin/smartpos/keys', (req: Request, res: Response) => {
+  return res.json({
+    keys: smartposKeyManager.getAllKeys(),
+    summary: smartposKeyManager.getPoolSummary(),
+  });
+});
+
+app.post('/api/admin/smartpos/keys', (req: Request, res: Response) => {
+  const { name, apiKey, domain, monthlyLimit } = req.body;
+  if (!name || !apiKey) {
+    return res.status(400).json({ error: 'এপিআই কি এর নাম এবং API Key আবশ্যক।' });
+  }
+
+  const created = smartposKeyManager.addKey({
+    name: String(name).trim(),
+    apiKey: String(apiKey).trim(),
+    domain: domain ? String(domain).trim() : undefined,
+    monthlyLimit: Number(monthlyLimit) || 1000,
+  });
+
+  return res.json({
+    success: true,
+    message: 'নতুন SmartPOS এপিআই কী সফলভাবে পুলে যুক্ত হয়েছে!',
+    key: created,
+    summary: smartposKeyManager.getPoolSummary(),
+  });
+});
+
+app.post('/api/admin/smartpos/keys/bulk', (req: Request, res: Response) => {
+  const { keys } = req.body;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return res.status(400).json({ error: 'অন্তত একটি API কী প্রদান করা আবশ্যক।' });
+  }
+
+  const created = smartposKeyManager.addMultipleKeys(keys);
+  return res.json({
+    success: true,
+    message: `${created.length} টি SmartPOS এপিআই কী সফলভাবে পুলে যুক্ত করা হয়েছে!`,
+    keys: created,
+    allKeys: smartposKeyManager.getAllKeys(),
+    summary: smartposKeyManager.getPoolSummary(),
+  });
+});
+
+app.put('/api/admin/smartpos/keys/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updated = smartposKeyManager.updateKey(id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Key not found' });
+  return res.json({
+    success: true,
+    message: 'এপিআই কী সেটিংস সফলভাবে আপডেট হয়েছে।',
+    key: updated,
+    summary: smartposKeyManager.getPoolSummary(),
+  });
+});
+
+app.post('/api/admin/smartpos/keys/:id/reset', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updated = smartposKeyManager.resetUsage(id);
+  if (!updated) return res.status(404).json({ error: 'Key not found' });
+  return res.json({
+    success: true,
+    message: 'এপিআই কী এর মাসিক ব্যবহার কাউন্টার সফলভাবে ০ তে রিসেট করা হয়েছে!',
+    key: updated,
+    summary: smartposKeyManager.getPoolSummary(),
+  });
+});
+
+app.delete('/api/admin/smartpos/keys/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const deleted = smartposKeyManager.deleteKey(id);
+  if (!deleted) return res.status(404).json({ error: 'Key not found' });
+  return res.json({
+    success: true,
+    message: 'এপিআই কী পুল থেকে মুছে ফেলা হয়েছে।',
+    summary: smartposKeyManager.getPoolSummary(),
+  });
 });
 
 // 7. Merchant Plan Payment & Upgrade Endpoints (bKash, Nagad, Rocket)
@@ -409,11 +585,12 @@ app.post('/api/payment/submit', (req: Request, res: Response) => {
       senderNumber: normalized,
       transactionId: transactionId.trim().toUpperCase(),
       userEmail: userEmail || 'merchant@example.com',
+      status: 'pending', // Submissions enter pending review for admin approval
     });
 
     return res.json({
       success: true,
-      message: 'পেমেন্ট সফলভাবে নিশ্চিত হয়েছে এবং আপনার অ্যাকাউন্ট তাৎক্ষণিকভাবে আপগ্রেড করা হয়েছে!',
+      message: 'পেমেন্ট ও প্যাকেজ রিকোয়েস্ট সফলভাবে সাবমিট হয়েছে! এডমিন অনুমোদনের পর সাথে সাথে এক্টিভ হবে।',
       payment: newPayment,
       planId,
       planName,

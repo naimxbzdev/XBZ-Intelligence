@@ -1,0 +1,22 @@
+[
+  {
+    "id": "sp_key_01",
+    "name": "SmartPOS Account #1 (Primary)",
+    "apiKey": "fraud_vRSyppIMF080gu4VE1TYRDqHsYIPL0Ms",
+    "domain": "intelligence.xbz.com.bd",
+    "monthlyLimit": 1000,
+    "usageCount": 0,
+    "status": "active",
+    "lastUsedAt": "2026-10-23T14:26:34.080Z",
+    "createdAt": "2026-03-01T00:00:00Z"
+  },
+  {
+    "id": "sp_key_mvl2yayt_0xpr",
+    "name": "SmartPOS Account #2 (Reserve Pool)",
+    "apiKey": "fraud_x9ZLaGNmvdEwu9krYPGtkfCbY1wtpvcy",
+    "monthlyLimit": 1000,
+    "usageCount": 0,
+    "status": "active",
+    "createdAt": "2026-10-23T14:43:31.973Z"
+  }
+]

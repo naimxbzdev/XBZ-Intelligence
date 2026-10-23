@@ -1,4 +1,5 @@
 import type { SmartposApiResponse, SmartposCommunityReport } from '../types/intelligence.ts';
+import { smartposKeyManager } from './smartposKeyManager.ts';
 import fs from 'fs';
 import path from 'path';
 
@@ -63,9 +64,21 @@ export class SmartposClient {
       };
     }
 
-    // 2. If API Key is configured, make real upstream REST API call
-    const activeKey = apiKey || process.env.SMARTPOS_FRAUD_API_KEY || 'fraud_vRSyppIMF080gu4VE1TYRDqHsYIPL0Ms';
-    if (activeKey) {
+    // 2. Multi-API Key Pooling & Automatic In-Flight Failover Rotation
+    const eligibleKeys = apiKey
+      ? [{
+          id: 'custom_runtime_key',
+          name: 'Merchant Custom Key',
+          apiKey,
+          domain: domain || process.env.SMARTPOS_DOMAIN,
+          monthlyLimit: 1000,
+          usageCount: 0,
+          status: 'active' as const,
+          createdAt: '',
+        }]
+      : smartposKeyManager.getEligibleKeys();
+
+    for (const keyConfig of eligibleKeys) {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 6000);
@@ -73,10 +86,10 @@ export class SmartposClient {
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-API-KEY': activeKey,
+          'X-API-KEY': keyConfig.apiKey,
         };
 
-        const activeDomain = domain || process.env.SMARTPOS_DOMAIN;
+        const activeDomain = keyConfig.domain || domain || process.env.SMARTPOS_DOMAIN;
         if (activeDomain) {
           headers['X-Domain'] = activeDomain;
         }
@@ -93,6 +106,11 @@ export class SmartposClient {
           const liveData = (await res.json()) as SmartposApiResponse;
           liveData.source = 'live';
 
+          // Record successful usage in key pool counter
+          if (keyConfig.id !== 'custom_runtime_key') {
+            smartposKeyManager.recordSuccess(keyConfig.id);
+          }
+
           // Cache for 15 days
           this.cache.set(cleanPhone, {
             data: liveData,
@@ -101,11 +119,21 @@ export class SmartposClient {
           this.saveCacheToDisk();
 
           return liveData;
+        } else if (res.status === 429 || res.status === 402 || res.status === 403) {
+          // Upstream monthly limit reached on this key! Mark as exhausted and rollover to next standby key
+          console.warn(`SmartPOS Key "${keyConfig.name}" exhausted its 1,000 monthly quota (HTTP ${res.status}). Rolling over to next available key in pool.`);
+          if (keyConfig.id !== 'custom_runtime_key') {
+            smartposKeyManager.recordQuotaExhausted(keyConfig.id, `HTTP ${res.status} Quota limit of 1,000 checks reached.`);
+          }
+          // Continue loop to try next standby key seamlessly
+          continue;
         } else {
-          console.warn(`Upstream SmartPOS API returned HTTP ${res.status}`);
+          console.warn(`Upstream SmartPOS API returned HTTP ${res.status} for key "${keyConfig.name}"`);
         }
       } catch (err: any) {
-        console.warn('Upstream SmartPOS API call failed, falling back to local cached engine:', err.message);
+        console.warn(`SmartPOS API query failed with key "${keyConfig.name}":`, err.message);
+        // Continue loop to try next key in pool
+        continue;
       }
     }
 

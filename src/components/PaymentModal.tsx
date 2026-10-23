@@ -143,6 +143,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error(data.error || 'Payment submission failed');
       }
 
+      if (data.payment) {
+        try {
+          const raw = localStorage.getItem('xbz_payment_submissions');
+          const existing = raw ? JSON.parse(raw) : [];
+          localStorage.setItem('xbz_payment_submissions', JSON.stringify([data.payment, ...existing]));
+        } catch {}
+      }
+
       setSuccess(true);
       setTimeout(() => {
         onPaymentSuccess(selectedPlan);
@@ -187,7 +195,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <h4 className="text-xl font-bold text-white">
               {selectedPlan === 'free' 
                 ? (lang === 'bn' ? 'ফ্রি স্টার্টার প্যাকেজ সক্রিয় হয়েছে!' : 'Free Starter Plan Activated!')
-                : (lang === 'bn' ? 'অভিনন্দন! আপনার প্ল্যান সক্রিয় হয়েছে' : 'Congratulations! Plan Activated')}
+                : (lang === 'bn' ? 'পেমেন্ট ও প্যাকেজ রিকোয়েস্ট গৃহীত হয়েছে!' : 'Package Request Received!')}
             </h4>
             <p className="text-sm text-cyan-300 font-medium">
               {selectedPlan === 'enterprise' ? 'Enterprise Unlimited Plan' : selectedPlan === 'pro' ? 'Merchant Pro Plan' : 'Free Starter Plan'}
@@ -195,7 +203,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <p className="text-xs text-slate-400">
               {selectedPlan === 'free'
                 ? (lang === 'bn' ? 'আপনি প্রতি মাসে ১০০টি ফোন নম্বর বিনামূল্যে যাচাই করতে পারবেন।' : 'You can search up to 100 numbers per month for free.')
-                : (lang === 'bn' ? 'বাল্ক সার্চ, প্রতারক ডাটাবেস, কুরিয়ার স্ট্যাটাস ও এপিআই ডক্স আনলক হয়েছে।' : 'Bulk search, fraud database, courier status, and API docs are now unlocked.')}
+                : (lang === 'bn' ? 'আপনার প্যাকেজ ও পেমেন্ট রিকোয়েস্টটি এডমিন প্যানেলে জমা হয়েছে। এডমিন অনুমোদনের পর সাথে সাথে লিমিট যুক্ত হবে।' : 'Your package request has been placed in the admin review queue. Quota activates upon approval.')}
             </p>
           </div>
         ) : (

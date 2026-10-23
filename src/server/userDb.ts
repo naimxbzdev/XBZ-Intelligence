@@ -18,10 +18,26 @@ export interface UserRecord {
   lastLoginAt: string;
 }
 
-const ADMIN_EMAILS = ['naimxbz@gmail.com', 'xbz.dev@gmail.com'];
+const ADMIN_EMAILS = ['naimxbz@gmail.com', 'xbz.dev@gmail.com', 'naeem@webxpress.com.bd'];
 const ADMIN_PASSWORD = process.env.ADMIN_PASSKEY || process.env.ADMIN_PASSWORD || 'n@!mXbz0';
 
 const INITIAL_USERS: UserRecord[] = [
+  {
+    id: 'admin_naeem_webxpress',
+    name: 'Naeem (Webxpress)',
+    email: 'naeem@webxpress.com.bd',
+    password: ADMIN_PASSWORD,
+    phone: '01700000000',
+    storeName: 'Webxpress Intelligence',
+    role: 'admin',
+    plan: 'Enterprise Admin (Unlimited)',
+    planId: 'enterprise',
+    status: 'approved',
+    checksRemaining: 999999,
+    apiKey: 'xbz_admin_webxpress_live_7e8d9c0b1a2f',
+    createdAt: '2026-01-01T00:00:00Z',
+    lastLoginAt: '2026-03-24T12:00:00Z',
+  },
   {
     id: 'admin_naim',
     name: 'Naim Xbz',
@@ -234,7 +250,7 @@ class UserDatabase {
     }
 
     if (user.status === 'suspended') {
-      return { error: 'আপনার অ্যাকাউন্ট সাময়িকভাবে স্থগিত করা হয়েছে। সাপোর্টে যোগাযোগ করুন।', isAdmin: false };
+      return { error: 'আপনার অ্যাকাউন্টটি অ্যাডমিন কর্তৃক সাময়িকভাবে স্থগিত/ব্যান করা হয়েছে। অনুগ্রহ করে সাপোর্টে যোগাযোগ করুন।', isAdmin: false };
     }
 
     if (user.password !== cleanPass) {
@@ -245,6 +261,14 @@ class UserDatabase {
     this.saveToDisk();
 
     return { user, isAdmin: user.role === 'admin' };
+  }
+
+  public findByApiKey(apiKey: string): UserRecord | undefined {
+    const clean = apiKey.trim();
+    if (!clean || clean.startsWith('banned_')) return undefined;
+    const user = this.users.find((u) => u.apiKey === clean);
+    if (!user || user.status === 'suspended') return undefined;
+    return user;
   }
 
   public register(data: {
@@ -305,6 +329,50 @@ class UserDatabase {
     return this.users[index];
   }
 
+  public banUser(id: string): UserRecord | null {
+    const user = this.findById(id);
+    if (!user) return null;
+    if (user.role === 'admin' && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      return null; // Cannot ban root admin
+    }
+    user.status = 'suspended';
+    this.saveToDisk();
+    return user;
+  }
+
+  public unbanUser(id: string): UserRecord | null {
+    const user = this.findById(id);
+    if (!user) return null;
+    user.status = 'approved';
+    this.saveToDisk();
+    return user;
+  }
+
+  public updatePlanAndLimits(
+    id: string,
+    planId: 'free' | 'pro' | 'enterprise',
+    customPlanName?: string,
+    checksLimit?: number
+  ): UserRecord | null {
+    const user = this.findById(id);
+    if (!user) return null;
+
+    const defaultChecks = planId === 'enterprise' ? 99999 : planId === 'pro' ? 2500 : 100;
+    const defaultName =
+      planId === 'enterprise'
+        ? 'Enterprise Unlimited'
+        : planId === 'pro'
+        ? 'Merchant Pro (2,500 checks)'
+        : 'Free Starter (100 checks/mo)';
+
+    user.planId = planId;
+    user.plan = customPlanName || defaultName;
+    user.checksRemaining = typeof checksLimit === 'number' && !isNaN(checksLimit) ? checksLimit : defaultChecks;
+
+    this.saveToDisk();
+    return user;
+  }
+
   public deleteUser(id: string): boolean {
     const user = this.findById(id);
     if (!user) return false;
@@ -321,6 +389,7 @@ class UserDatabase {
   public deductCheck(emailOrId: string): number {
     const user = this.users.find((u) => u.id === emailOrId || u.email.toLowerCase() === emailOrId.toLowerCase());
     if (!user) return 0;
+    if (user.status === 'suspended') return 0;
     if (user.planId === 'enterprise' || user.role === 'admin') return 999999;
     user.checksRemaining = Math.max(0, user.checksRemaining - 1);
     this.saveToDisk();

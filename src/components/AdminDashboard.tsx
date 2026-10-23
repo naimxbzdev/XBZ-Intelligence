@@ -37,7 +37,25 @@ import {
   EyeOff,
   DollarSign,
   Save,
+  Package,
+  Sliders,
+  Edit3,
+  XCircle,
+  CheckSquare,
+  Ban,
+  ShieldOff,
+  Shuffle,
+  RefreshCw,
+  Play,
+  Gauge,
+  List,
+  LayoutGrid,
+  PlusCircle,
+  ChevronDown,
+  ChevronUp,
+  FileText,
 } from 'lucide-react';
+import type { PaymentSubmission, SmartposKeyConfig } from '../types/intelligence.ts';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -83,7 +101,7 @@ export interface PricingConfig {
 }
 
 // Authorized Admin Emails and Master Credentials (Hashed to prevent secret exposure in production builds)
-export const AUTHORIZED_ADMIN_EMAILS = ['naimxbz@gmail.com', 'xbz.dev@gmail.com'];
+export const AUTHORIZED_ADMIN_EMAILS = ['naimxbz@gmail.com', 'xbz.dev@gmail.com', 'naeem@webxpress.com.bd'];
 const MASTER_ADMIN_HASHES = [
   '18ad921104e138a2e578c9497e704ea8848dcf373bfe4cbe0666dd9f3906a583',
   'ef50005d5c07ba045ce600df5a5874246fe18eb8a37930ee1d62c1615f36e4f3',
@@ -103,6 +121,96 @@ async function computeSHA256(text: string): Promise<string> {
 
 const LOCAL_STORAGE_USERS_KEY = 'xbz_registered_users';
 const LOCAL_STORAGE_PRICING_KEY = 'xbz_pricing_config';
+const LOCAL_STORAGE_PAYMENTS_KEY = 'xbz_payment_submissions';
+
+const INITIAL_PACKAGE_REQUESTS: PaymentSubmission[] = [
+  {
+    id: 'pay_req_01',
+    planId: 'pro',
+    planName: 'Merchant Pro (2,500 checks)',
+    amountBDT: 499,
+    paymentMethod: 'bkash',
+    senderNumber: '01711223344',
+    transactionId: 'BK82914710',
+    userEmail: 'tanvir@fashionbd.com',
+    status: 'pending',
+    submittedAt: '2026-03-24T10:15:00Z',
+  },
+  {
+    id: 'pay_req_02',
+    planId: 'enterprise',
+    planName: 'Enterprise Unlimited',
+    amountBDT: 1499,
+    paymentMethod: 'nagad',
+    senderNumber: '01822334455',
+    transactionId: 'NGD8271948',
+    userEmail: 'sabrina@glamourbd.com',
+    status: 'verified',
+    approvedAt: '2026-03-23T15:20:00Z',
+    submittedAt: '2026-03-23T14:40:00Z',
+  },
+  {
+    id: 'pay_req_03',
+    planId: 'pro',
+    planName: 'Merchant Pro (2,500 checks)',
+    amountBDT: 499,
+    paymentMethod: 'rocket',
+    senderNumber: '01511224466',
+    transactionId: 'RKT9912847',
+    userEmail: 'rafiq@gadgetbazaar.com',
+    status: 'pending',
+    submittedAt: '2026-03-24T11:05:00Z',
+  },
+  {
+    id: 'pay_req_04',
+    planId: 'pro',
+    planName: 'Merchant Pro (2,500 checks)',
+    amountBDT: 499,
+    paymentMethod: 'bkash',
+    senderNumber: '01933445566',
+    transactionId: 'BK11029481',
+    userEmail: 'mahmud@techzonebd.com',
+    status: 'rejected',
+    rejectionReason: 'ভুল TrxID প্রদান করা হয়েছে, টাকা জমা পাওয়া যায়নি।',
+    rejectedAt: '2026-03-22T16:00:00Z',
+    submittedAt: '2026-03-22T14:20:00Z',
+  },
+];
+
+const LOCAL_STORAGE_SMARTPOS_KEYS_KEY = 'xbz_smartpos_keys';
+
+const INITIAL_SMARTPOS_KEYS_CLIENT: SmartposKeyConfig[] = [
+  {
+    id: 'sp_key_01',
+    name: 'SmartPOS Account #1 (Primary)',
+    apiKey: 'fraud_vRSyppIMF080gu4VE1TYRDqHsYIPL0Ms',
+    domain: 'intelligence.xbz.com.bd',
+    monthlyLimit: 1000,
+    usageCount: 385,
+    status: 'active',
+    lastUsedAt: '2026-03-24T12:00:00Z',
+    createdAt: '2026-03-01T00:00:00Z',
+  },
+  {
+    id: 'sp_key_02',
+    name: 'SmartPOS Account #2 (Standby Backup)',
+    apiKey: 'fraud_k982j3h4g5f6d7s8a9q0w1e2r3t4y5u6',
+    domain: 'backup.xbz.com.bd',
+    monthlyLimit: 1000,
+    usageCount: 0,
+    status: 'active',
+    createdAt: '2026-03-15T00:00:00Z',
+  },
+  {
+    id: 'sp_key_03',
+    name: 'SmartPOS Account #3 (Reserve Pool)',
+    apiKey: 'fraud_m1n2b3v4c5x6z7l8k9j0h1g2f3d4s5a6',
+    monthlyLimit: 1000,
+    usageCount: 0,
+    status: 'active',
+    createdAt: '2026-03-20T00:00:00Z',
+  },
+];
 
 const INITIAL_REGISTERED_USERS: RegisteredUser[] = [
   {
@@ -333,8 +441,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [adminLoginLoading, setAdminLoginLoading] = useState(false);
   const [adminLoginError, setAdminLoginError] = useState<string | null>(null);
 
-  // Active Admin View Tab: 'users' | 'analytics' | 'pricing'
-  const [adminTab, setAdminTab] = useState<'users' | 'analytics' | 'pricing'>('users');
+  // Active Admin View Tab: 'users' | 'packages' | 'smartpos' | 'analytics' | 'pricing'
+  const [adminTab, setAdminTab] = useState<'users' | 'packages' | 'smartpos' | 'analytics' | 'pricing'>('users');
+
+  // SmartPOS Multi-API Key Pool state
+  const [smartposKeys, setSmartposKeys] = useState<SmartposKeyConfig[]>(() => {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_SMARTPOS_KEYS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return INITIAL_SMARTPOS_KEYS_CLIENT;
+    } catch {
+      return INITIAL_SMARTPOS_KEYS_CLIENT;
+    }
+  });
+
+  // Fetch SmartPOS keys from backend
+  useEffect(() => {
+    fetch('/api/admin/smartpos/keys')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.keys) && data.keys.length > 0) {
+          setSmartposKeys(data.keys);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_SMARTPOS_KEYS_KEY, JSON.stringify(data.keys));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveSmartposKeys = (updated: SmartposKeyConfig[]) => {
+    setSmartposKeys(updated);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_SMARTPOS_KEYS_KEY, JSON.stringify(updated));
+    } catch {}
+  };
 
   // Users state fetched from localStorage
   const [users, setUsers] = useState<RegisteredUser[]>(() => {
@@ -353,6 +497,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   });
 
+  // Package & Payment submissions state
+  const [payments, setPayments] = useState<PaymentSubmission[]>(() => {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_PAYMENTS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      localStorage.setItem(LOCAL_STORAGE_PAYMENTS_KEY, JSON.stringify(INITIAL_PACKAGE_REQUESTS));
+      return INITIAL_PACKAGE_REQUESTS;
+    } catch {
+      return INITIAL_PACKAGE_REQUESTS;
+    }
+  });
+
+  // Fetch package requests from backend on mount
+  useEffect(() => {
+    fetch('/api/admin/packages')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPayments(data);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_PAYMENTS_KEY, JSON.stringify(data));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Pricing configuration state
   const [pricing, setPricing] = useState<PricingConfig>(() => {
     try {
@@ -364,13 +540,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   });
 
-  // UI state for filter, search, selection, and modals
+  // UI state for user filter, search, selection, and modals
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'pending' | 'suspended'>('all');
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'pro' | 'enterprise'>('all');
   const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [userToDelete, setUserToDelete] = useState<RegisteredUser | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Package Requests Filter & Search State
+  const [packageFilter, setPackageFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
+  const [packageSearchQuery, setPackageSearchQuery] = useState('');
+
+  // Modals for Package Actions: Approve, Reject, Delete
+  const [packageToApprove, setPackageToApprove] = useState<PaymentSubmission | null>(null);
+  const [approvalCustomLimit, setApprovalCustomLimit] = useState<number>(2500);
+  const [packageToReject, setPackageToReject] = useState<PaymentSubmission | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
+  const [packageToDelete, setPackageToDelete] = useState<PaymentSubmission | null>(null);
+
+  // SmartPOS Key Pool Modals & Action States
+  const [isAddKeyModalOpen, setIsAddKeyModalOpen] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyApiKey, setNewKeyApiKey] = useState('');
+  const [newKeyDomain, setNewKeyDomain] = useState('');
+  const [newKeyMonthlyLimit, setNewKeyMonthlyLimit] = useState<number>(1000);
+  const [editingSmartposKey, setEditingSmartposKey] = useState<SmartposKeyConfig | null>(null);
+  const [editKeyMonthlyLimit, setEditKeyMonthlyLimit] = useState<number>(1000);
+  const [editKeyStatus, setEditKeyStatus] = useState<'active' | 'disabled' | 'exhausted' | 'error'>('active');
+  const [keyToDelete, setKeyToDelete] = useState<SmartposKeyConfig | null>(null);
+  const [isSimulatingRollover, setIsSimulatingRollover] = useState(false);
+
+  // SmartPOS Multi-Key Form & View Mode States
+  const [isMultiKeyFormOpen, setIsMultiKeyFormOpen] = useState(true);
+  const [multiKeyMode, setMultiKeyMode] = useState<'rows' | 'bulk'>('rows');
+  const [multiKeyRows, setMultiKeyRows] = useState<Array<{ id: string; name: string; apiKey: string; domain: string; monthlyLimit: number }>>([
+    { id: '1', name: '', apiKey: '', domain: '', monthlyLimit: 1000 },
+    { id: '2', name: '', apiKey: '', domain: '', monthlyLimit: 1000 },
+  ]);
+  const [bulkPasteText, setBulkPasteText] = useState('');
+  const [isSubmittingMultiKeys, setIsSubmittingMultiKeys] = useState(false);
+  const [smartposViewMode, setSmartposViewMode] = useState<'list' | 'grid'>('list');
+
+  // Edit User Package & Limit Modal State
+  const [editingUser, setEditingUser] = useState<RegisteredUser | null>(null);
+  const [editUserPlanId, setEditUserPlanId] = useState<'free' | 'pro' | 'enterprise'>('pro');
+  const [editUserPlanName, setEditUserPlanName] = useState<string>('');
+  const [editUserChecks, setEditUserChecks] = useState<number>(2500);
+  const [editUserStatus, setEditUserStatus] = useState<'approved' | 'pending' | 'suspended'>('approved');
 
   // New User Form State
   const [newUserName, setNewUserName] = useState('');
@@ -379,6 +596,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newUserStore, setNewUserStore] = useState('');
   const [newUserPlan, setNewUserPlan] = useState<'free' | 'pro' | 'enterprise'>('pro');
   const [newUserStatus, setNewUserStatus] = useState<'approved' | 'pending'>('approved');
+
+  // Helper to persist payments
+  const savePayments = (updated: PaymentSubmission[]) => {
+    setPayments(updated);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_PAYMENTS_KEY, JSON.stringify(updated));
+    } catch {}
+  };
 
   // Sync users to localStorage & backend
   const saveUsers = (updated: RegisteredUser[]) => {
@@ -584,10 +809,582 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Reset sample dataset helper
   const handleResetData = () => {
     saveUsers(INITIAL_REGISTERED_USERS);
+    savePayments(INITIAL_PACKAGE_REQUESTS);
     showFeedback(
-      lang === 'bn' ? 'নমুনা ব্যবহারকারী ডাটা সফলভাবে রিস্টোর করা হয়েছে।' : 'Sample dataset restored successfully.',
+      lang === 'bn' ? 'নমুনা ব্যবহারকারী ও প্যাকেজ ডাটা সফলভাবে রিস্টোর করা হয়েছে।' : 'Sample dataset restored successfully.',
       'info'
     );
+  };
+
+  // User Ban / Unban Toggle Handler
+  const handleToggleBan = async (targetUser: RegisteredUser) => {
+    if (AUTHORIZED_ADMIN_EMAILS.includes(targetUser.email.toLowerCase())) {
+      showFeedback(
+        lang === 'bn' ? 'প্রধান এডমিন অ্যাকাউন্ট ব্যান করা সম্ভব নয়।' : 'Cannot ban root administrator account.',
+        'error'
+      );
+      return;
+    }
+
+    const isBanning = targetUser.status !== 'suspended';
+    const nextStatus: 'suspended' | 'approved' = isBanning ? 'suspended' : 'approved';
+    const updated = users.map((u) => (u.id === targetUser.id ? { ...u, status: nextStatus } : u));
+    saveUsers(updated);
+
+    try {
+      const endpoint = isBanning ? `/api/admin/users/${targetUser.id}/ban` : `/api/admin/users/${targetUser.id}/unban`;
+      await fetch(endpoint, { method: 'POST' });
+    } catch {}
+
+    showFeedback(
+      isBanning
+        ? lang === 'bn'
+          ? `গ্রাহক ${targetUser.name} (${targetUser.email}) কে তাৎক্ষণিকভাবে ব্যান ও স্থগিত করা হয়েছে।`
+          : `User ${targetUser.name} has been banned & suspended.`
+        : lang === 'bn'
+          ? `গ্রাহক ${targetUser.name} এর অ্যাকাউন্ট সফলভাবে সক্রিয় ও আনব্যান করা হয়েছে।`
+          : `User ${targetUser.name} has been unbanned and restored.`,
+      isBanning ? 'error' : 'success'
+    );
+  };
+
+  // Open Edit User Package & Limit Modal
+  const handleOpenEditUser = (targetUser: RegisteredUser) => {
+    setEditingUser(targetUser);
+    setEditUserPlanId(targetUser.planId);
+    setEditUserPlanName(targetUser.plan);
+    setEditUserChecks(targetUser.checksRemaining);
+    setEditUserStatus(targetUser.status);
+  };
+
+  // Save User Package & Limit changes
+  const handleSaveUserPlanAndLimit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const planLabel =
+      editUserPlanName.trim() ||
+      (editUserPlanId === 'enterprise'
+        ? 'Enterprise Unlimited'
+        : editUserPlanId === 'pro'
+        ? 'Merchant Pro (2,500 checks)'
+        : 'Free Starter (100 checks/mo)');
+
+    const updated = users.map((u) => {
+      if (u.id === editingUser.id) {
+        return {
+          ...u,
+          planId: editUserPlanId,
+          plan: planLabel,
+          checksRemaining: Number(editUserChecks) || 0,
+          status: editUserStatus,
+        };
+      }
+      return u;
+    });
+
+    saveUsers(updated);
+
+    try {
+      await fetch(`/api/admin/users/${editingUser.id}/update-plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: editUserPlanId,
+          planName: planLabel,
+          checksRemaining: Number(editUserChecks) || 0,
+          status: editUserStatus,
+        }),
+      });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn'
+        ? `গ্রাহক ${editingUser.name} এর প্যাকেজ ও লিমিট সফলভাবে হালনাগাদ করা হয়েছে!`
+        : `Package & credit limit updated for ${editingUser.name}!`,
+      'success'
+    );
+    setEditingUser(null);
+  };
+
+  // Open Package Approval modal with default limit
+  const handleOpenApprovePackage = (p: PaymentSubmission) => {
+    setPackageToApprove(p);
+    const standardLimit = p.planId === 'enterprise' ? 99999 : 2500;
+    setApprovalCustomLimit(standardLimit);
+  };
+
+  // Confirm Package Approval
+  const handleConfirmApprovePackage = async () => {
+    if (!packageToApprove) return;
+
+    const grantedLimit = Number(approvalCustomLimit) || (packageToApprove.planId === 'enterprise' ? 99999 : 2500);
+    const nowIso = new Date().toISOString();
+
+    const updatedPayments = payments.map((p) =>
+      p.id === packageToApprove.id
+        ? { ...p, status: 'verified' as const, approvedAt: nowIso, customLimitGranted: grantedLimit }
+        : p
+    );
+    savePayments(updatedPayments);
+
+    // Also update merchant in users state if email matches
+    if (packageToApprove.userEmail) {
+      const targetEmail = packageToApprove.userEmail.toLowerCase();
+      const updatedUsers = users.map((u) => {
+        if (u.email.toLowerCase() === targetEmail) {
+          return {
+            ...u,
+            planId: packageToApprove.planId,
+            plan: packageToApprove.planName,
+            checksRemaining: grantedLimit,
+            status: 'approved' as const,
+          };
+        }
+        return u;
+      });
+      saveUsers(updatedUsers);
+    }
+
+    try {
+      await fetch(`/api/admin/packages/${packageToApprove.id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customLimitGranted: grantedLimit }),
+      });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn'
+        ? `প্যাকেজ রিকোয়েস্ট (TrxID: ${packageToApprove.transactionId}) সফলভাবে অনুমোদিত হয়েছে এবং গ্রাহককে ${grantedLimit.toLocaleString()} লিমিট দেওয়া হয়েছে!`
+        : `Package request approved! ${grantedLimit.toLocaleString()} checks allocated.`,
+      'success'
+    );
+    setPackageToApprove(null);
+  };
+
+  // Open Package Rejection modal
+  const handleOpenRejectPackage = (p: PaymentSubmission) => {
+    setPackageToReject(p);
+    setRejectionReasonInput('');
+  };
+
+  // Confirm Package Rejection
+  const handleConfirmRejectPackage = async () => {
+    if (!packageToReject) return;
+
+    const reason = rejectionReasonInput.trim() || 'পেমেন্ট ভেরিফিকেশন ব্যর্থ হয়েছে / ভুল TrxID।';
+    const nowIso = new Date().toISOString();
+
+    const updatedPayments = payments.map((p) =>
+      p.id === packageToReject.id
+        ? { ...p, status: 'rejected' as const, rejectedAt: nowIso, rejectionReason: reason }
+        : p
+    );
+    savePayments(updatedPayments);
+
+    try {
+      await fetch(`/api/admin/packages/${packageToReject.id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rejectionReason: reason }),
+      });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn'
+        ? `প্যাকেজ রিকোয়েস্ট (TrxID: ${packageToReject.transactionId}) বাতিল করা হয়েছে।`
+        : `Package request rejected.`,
+      'info'
+    );
+    setPackageToReject(null);
+  };
+
+  // Open Package Deletion
+  const handleOpenDeletePackage = (p: PaymentSubmission) => {
+    setPackageToDelete(p);
+  };
+
+  // Confirm Package Deletion
+  const handleConfirmDeletePackage = async () => {
+    if (!packageToDelete) return;
+
+    const updatedPayments = payments.filter((p) => p.id !== packageToDelete.id);
+    savePayments(updatedPayments);
+
+    try {
+      await fetch(`/api/admin/packages/${packageToDelete.id}`, { method: 'DELETE' });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn'
+        ? `প্যাকেজ রিকোয়েস্ট রেকর্ড সফলভাবে মুছে ফেলা হয়েছে।`
+        : `Package request record deleted.`,
+      'info'
+    );
+    setPackageToDelete(null);
+  };
+
+  // Filtered package requests calculation
+  const filteredPayments = useMemo(() => {
+    return payments.filter((p) => {
+      if (packageFilter !== 'all' && p.status !== packageFilter) return false;
+      if (packageSearchQuery.trim()) {
+        const q = packageSearchQuery.toLowerCase();
+        return (
+          p.transactionId.toLowerCase().includes(q) ||
+          p.senderNumber.includes(q) ||
+          (p.userEmail && p.userEmail.toLowerCase().includes(q)) ||
+          p.paymentMethod.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [payments, packageFilter, packageSearchQuery]);
+
+  const pendingPackagesCount = useMemo(() => {
+    return payments.filter((p) => p.status === 'pending').length;
+  }, [payments]);
+
+  // SmartPOS Pool Summary calculation
+  const smartposPoolSummary = useMemo(() => {
+    const totalCapacity = smartposKeys.reduce((sum, k) => sum + k.monthlyLimit, 0);
+    const usedChecks = smartposKeys.reduce((sum, k) => sum + k.usageCount, 0);
+    const remainingChecks = Math.max(0, totalCapacity - usedChecks);
+    const eligible = smartposKeys.filter(
+      (k) => k.status !== 'disabled' && k.status !== 'exhausted' && k.usageCount < k.monthlyLimit
+    );
+    const activeServingKey = eligible.length > 0 ? eligible[0] : null;
+
+    return {
+      totalCapacity,
+      usedChecks,
+      remainingChecks,
+      activeKeysCount: eligible.length,
+      exhaustedKeysCount: smartposKeys.filter((k) => k.status === 'exhausted').length,
+      activeServingKey,
+    };
+  }, [smartposKeys]);
+
+  // Reset usage on a key (recharges key)
+  const handleResetSmartposKey = async (keyId: string) => {
+    const updated = smartposKeys.map((k) =>
+      k.id === keyId ? { ...k, usageCount: 0, status: 'active' as const, lastError: undefined } : k
+    );
+    saveSmartposKeys(updated);
+
+    try {
+      await fetch(`/api/admin/smartpos/keys/${keyId}/reset`, { method: 'POST' });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn' ? 'এপিআই কী এর ব্যবহার কাউন্টার ০ তে রিসেট করা হয়েছে!' : 'Key usage reset to 0!',
+      'success'
+    );
+  };
+
+  // Toggle enable/disable key
+  const handleToggleSmartposKey = async (key: SmartposKeyConfig) => {
+    const nextStatus: 'active' | 'disabled' = key.status === 'disabled' ? 'active' : 'disabled';
+    const updated = smartposKeys.map((k) => (k.id === key.id ? { ...k, status: nextStatus } : k));
+    saveSmartposKeys(updated);
+
+    try {
+      await fetch(`/api/admin/smartpos/keys/${key.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+    } catch {}
+
+    showFeedback(
+      nextStatus === 'disabled'
+        ? (lang === 'bn' ? 'কী সাময়িকভাবে বন্ধ করা হয়েছে।' : 'Key disabled.')
+        : (lang === 'bn' ? 'কী পুনরায় চালু করা হয়েছে।' : 'Key activated.'),
+      'info'
+    );
+  };
+
+  // Add new SmartPOS Key
+  const handleAddSmartposKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeyName.trim() || !newKeyApiKey.trim()) {
+      showFeedback('Name and API Key are required', 'error');
+      return;
+    }
+
+    const created: SmartposKeyConfig = {
+      id: 'sp_key_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4),
+      name: newKeyName.trim(),
+      apiKey: newKeyApiKey.trim(),
+      domain: newKeyDomain.trim() || undefined,
+      monthlyLimit: Number(newKeyMonthlyLimit) || 1000,
+      usageCount: 0,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+
+    saveSmartposKeys([...smartposKeys, created]);
+    setIsAddKeyModalOpen(false);
+    setNewKeyName('');
+    setNewKeyApiKey('');
+    setNewKeyDomain('');
+    setNewKeyMonthlyLimit(1000);
+
+    try {
+      await fetch('/api/admin/smartpos/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(created),
+      });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn' ? 'নতুন SmartPOS এপিআই কী সফলভাবে যুক্ত হয়েছে!' : 'New SmartPOS key added to pool!',
+      'success'
+    );
+  };
+
+  // Multi-key Row Operations
+  const handleAddMultiKeyRow = () => {
+    const nextId = String(Date.now() + Math.random());
+    setMultiKeyRows((prev) => [
+      ...prev,
+      { id: nextId, name: '', apiKey: '', domain: '', monthlyLimit: 1000 },
+    ]);
+  };
+
+  const handleRemoveMultiKeyRow = (id: string) => {
+    if (multiKeyRows.length <= 1) return;
+    setMultiKeyRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const handleUpdateMultiKeyRow = (
+    id: string,
+    field: 'name' | 'apiKey' | 'domain' | 'monthlyLimit',
+    value: any
+  ) => {
+    setMultiKeyRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  // Submit multi-key rows form
+  const handleSubmitMultiKeyRows = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validRows = multiKeyRows.filter((r) => r.apiKey && r.apiKey.trim().length > 0);
+    if (validRows.length === 0) {
+      showFeedback(lang === 'bn' ? 'কমপক্ষে একটি API কী ইনপুট দিন!' : 'Please enter at least one API key!', 'error');
+      return;
+    }
+
+    setIsSubmittingMultiKeys(true);
+    try {
+      const payload = validRows.map((r, i) => ({
+        name: r.name.trim() || `SmartPOS Key #${smartposKeys.length + i + 1}`,
+        apiKey: r.apiKey.trim(),
+        domain: r.domain.trim() || undefined,
+        monthlyLimit: Number(r.monthlyLimit) || 1000,
+      }));
+
+      const res = await fetch('/api/admin/smartpos/keys/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: payload }),
+      });
+      const data = await res.json();
+      if (data && data.allKeys) {
+        saveSmartposKeys(data.allKeys);
+      } else if (data && data.keys) {
+        saveSmartposKeys([...smartposKeys, ...data.keys]);
+      } else {
+        const localCreated: SmartposKeyConfig[] = payload.map((p, idx) => ({
+          id: 'sp_key_' + Date.now().toString(36) + '_' + idx,
+          name: p.name,
+          apiKey: p.apiKey,
+          domain: p.domain,
+          monthlyLimit: p.monthlyLimit,
+          usageCount: 0,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        }));
+        saveSmartposKeys([...smartposKeys, ...localCreated]);
+      }
+
+      setMultiKeyRows([
+        { id: '1', name: '', apiKey: '', domain: '', monthlyLimit: 1000 },
+        { id: '2', name: '', apiKey: '', domain: '', monthlyLimit: 1000 },
+      ]);
+      showFeedback(
+        lang === 'bn'
+          ? `${validRows.length}টি SmartPOS কী সফলভাবে পুলে যুক্ত হয়েছে!`
+          : `Successfully added ${validRows.length} SmartPOS keys to pool!`,
+        'success'
+      );
+    } catch {
+      showFeedback('Keys saved locally', 'success');
+    } finally {
+      setIsSubmittingMultiKeys(false);
+    }
+  };
+
+  // Submit bulk paste text form
+  const handleSubmitBulkPaste = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const lines = bulkPasteText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith('#'));
+
+    if (lines.length === 0) {
+      showFeedback(lang === 'bn' ? 'কোনো বৈধ API কী পাওয়া যায়নি!' : 'No valid API keys found in text!', 'error');
+      return;
+    }
+
+    setIsSubmittingMultiKeys(true);
+    try {
+      const payload = lines.map((line, idx) => {
+        const parts = line.split(',').map((p) => p.trim());
+        if (parts.length >= 2 && (parts[1].startsWith('fraud_') || parts[1].length > 10)) {
+          return {
+            name: parts[0] || `SmartPOS Bulk #${smartposKeys.length + idx + 1}`,
+            apiKey: parts[1],
+            domain: parts[2] || undefined,
+            monthlyLimit: Number(parts[3]) || 1000,
+          };
+        }
+        return {
+          name: `SmartPOS Key #${smartposKeys.length + idx + 1}`,
+          apiKey: parts[0],
+          domain: undefined,
+          monthlyLimit: 1000,
+        };
+      });
+
+      const res = await fetch('/api/admin/smartpos/keys/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: payload }),
+      });
+      const data = await res.json();
+      if (data && data.allKeys) {
+        saveSmartposKeys(data.allKeys);
+      } else {
+        const localCreated: SmartposKeyConfig[] = payload.map((p, idx) => ({
+          id: 'sp_key_' + Date.now().toString(36) + '_' + idx,
+          name: p.name,
+          apiKey: p.apiKey,
+          domain: p.domain,
+          monthlyLimit: p.monthlyLimit,
+          usageCount: 0,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        }));
+        saveSmartposKeys([...smartposKeys, ...localCreated]);
+      }
+
+      setBulkPasteText('');
+      showFeedback(
+        lang === 'bn'
+          ? `${payload.length}টি API কী সফলভাবে ইমপোর্ট হয়েছে!`
+          : `Successfully imported ${payload.length} API keys!`,
+        'success'
+      );
+    } catch {
+      showFeedback('Keys saved', 'success');
+    } finally {
+      setIsSubmittingMultiKeys(false);
+    }
+  };
+
+  // Save Edit Key
+  const handleSaveEditSmartposKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSmartposKey) return;
+
+    const updated = smartposKeys.map((k) =>
+      k.id === editingSmartposKey.id
+        ? {
+            ...k,
+            monthlyLimit: Number(editKeyMonthlyLimit) || 1000,
+            status: editKeyStatus,
+          }
+        : k
+    );
+
+    saveSmartposKeys(updated);
+
+    try {
+      await fetch(`/api/admin/smartpos/keys/${editingSmartposKey.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monthlyLimit: Number(editKeyMonthlyLimit) || 1000,
+          status: editKeyStatus,
+        }),
+      });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn' ? 'কী সেটিংস হালনাগাদ করা হয়েছে।' : 'Key configuration updated.',
+      'success'
+    );
+    setEditingSmartposKey(null);
+  };
+
+  // Delete SmartPOS Key
+  const handleDeleteSmartposKey = async () => {
+    if (!keyToDelete) return;
+
+    const updated = smartposKeys.filter((k) => k.id !== keyToDelete.id);
+    saveSmartposKeys(updated);
+
+    try {
+      await fetch(`/api/admin/smartpos/keys/${keyToDelete.id}`, { method: 'DELETE' });
+    } catch {}
+
+    showFeedback(
+      lang === 'bn' ? 'কী পুল থেকে মুছে ফেলা হয়েছে।' : 'Key removed from pool.',
+      'info'
+    );
+    setKeyToDelete(null);
+  };
+
+  // Rollover Simulation Handler (Demonstrates automatic in-flight switch)
+  const handleSimulateRollover = () => {
+    if (!smartposPoolSummary.activeServingKey) {
+      showFeedback('No active serving key available to simulate.', 'error');
+      return;
+    }
+
+    setIsSimulatingRollover(true);
+    const targetKey = smartposPoolSummary.activeServingKey;
+
+    setTimeout(() => {
+      // Mark current key as exhausted (reached 1000 limit)
+      const updated = smartposKeys.map((k) => {
+        if (k.id === targetKey.id) {
+          return {
+            ...k,
+            usageCount: k.monthlyLimit,
+            status: 'exhausted' as const,
+            lastError: `Monthly limit of ${k.monthlyLimit.toLocaleString()} checks reached. Traffic automatically rerouted to next standby key.`,
+            lastUsedAt: new Date().toISOString(),
+          };
+        }
+        return k;
+      });
+
+      saveSmartposKeys(updated);
+      setIsSimulatingRollover(false);
+
+      showFeedback(
+        lang === 'bn'
+          ? `সিমুলেশন সম্পন্ন! "${targetKey.name}" এর ১,০০০ সীমা পূর্ণ হওয়ায় স্বয়ংক্রিয়ভাবে পরবর্তী কী-তে ট্রাফিক সুইচ হয়েছে!`
+          : `Rollover Simulated! "${targetKey.name}" hit 1,000 limit and traffic seamlessly switched to next standby key!`,
+        'success'
+      );
+    }, 800);
   };
 
   // Filtered users calculation
@@ -782,6 +1579,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setAdminTab('packages')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer relative ${
+                adminTab === 'packages'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'প্যাকেজ রিকোয়েস্ট' : 'Package Requests'}</span>
+              {pendingPackagesCount > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950 font-mono">
+                  {pendingPackagesCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setAdminTab('smartpos')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer relative ${
+                adminTab === 'smartpos'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Gauge className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'SmartPOS কী পুল' : 'SmartPOS Key Pool'}</span>
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-mono">
+                {smartposPoolSummary.activeKeysCount} Active
+              </span>
+            </button>
+
+            <button
               onClick={() => setAdminTab('analytics')}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
                 adminTab === 'analytics'
@@ -849,23 +1678,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
-            <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'অপেক্ষমান অনুমোদন' : 'Pending Approvals'}</span>
+            <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'অপেক্ষমান প্যাকেজ রিকোয়েস্ট' : 'Pending Package Upgrades'}</span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-extrabold text-amber-400 font-mono tabular-nums">{metrics.pending}</span>
-              {metrics.pending > 0 && (
+              <span className="text-2xl font-extrabold text-amber-400 font-mono tabular-nums">{pendingPackagesCount}</span>
+              {pendingPackagesCount > 0 && (
                 <button
                   onClick={() => {
-                    setAdminTab('users');
-                    setStatusFilter('pending');
+                    setAdminTab('packages');
+                    setPackageFilter('pending');
                   }}
-                  className="text-[11px] text-cyan-400 hover:underline"
+                  className="text-[11px] text-cyan-400 hover:underline cursor-pointer font-medium"
                 >
-                  Review
+                  {lang === 'bn' ? 'রিভিউ করুন' : 'Review'}
                 </button>
               )}
             </div>
             <p className="text-[11px] text-slate-500 pt-1">
-              {lang === 'bn' ? 'এডমিন ভেরিফিকেশন অপেক্ষমান' : 'Accounts awaiting review'}
+              {lang === 'bn' ? `${metrics.pending} ইউজার + ${pendingPackagesCount} প্যাকেজ রিকোয়েস্ট` : `${metrics.pending} users & ${pendingPackagesCount} package payments`}
             </p>
           </div>
 
@@ -1057,7 +1886,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {lang === 'bn' ? 'নিবন্ধনের তারিখ' : 'Registered Date'}
                     </th>
                     <th scope="col" className="px-4 py-3.5 text-right">
-                      {lang === 'bn' ? 'এডমিন অ্যাকশন' : 'Approve / Delete'}
+                      {lang === 'bn' ? 'অ্যাকশন (প্যাকেজ / ব্যান / ডিলিট)' : 'Actions (Plan / Ban / Delete)'}
                     </th>
                   </tr>
                 </thead>
@@ -1075,6 +1904,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const isPending = item.status === 'pending';
                       const isApproved = item.status === 'approved';
                       const isSuspended = item.status === 'suspended';
+                      const userPendingPackage = payments.find(
+                        (p) => p.userEmail?.toLowerCase() === item.email.toLowerCase() && p.status === 'pending'
+                      );
 
                       return (
                         <tr key={item.id} className="hover:bg-slate-800/30 transition-colors">
@@ -1113,31 +1945,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           <td className="px-4 py-3.5">
-                            <div className="space-y-0.5">
+                            <div className="space-y-1">
                               <span className="font-medium text-slate-200 block truncate">{item.plan}</span>
-                              <span className="text-[11px] text-cyan-300 font-mono tabular-nums">
-                                {item.checksRemaining > 90000 ? 'Unlimited' : `${item.checksRemaining} checks`}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-cyan-300 font-mono tabular-nums">
+                                  {item.checksRemaining > 90000 ? 'Unlimited' : `${item.checksRemaining.toLocaleString()} checks`}
+                                </span>
+                                {userPendingPackage && (
+                                  <button
+                                    onClick={() => handleOpenApprovePackage(userPendingPackage)}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                                    title="Click to approve requested package upgrade"
+                                  >
+                                    Req: {userPendingPackage.planId.toUpperCase()}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </td>
 
                           <td className="px-4 py-3.5">
                             {isApproved && (
-                              <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-xs">
+                              <div className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold text-xs px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/30">
                                 <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                                <span>Approved</span>
+                                <span>{lang === 'bn' ? 'সক্রিয়' : 'Active'}</span>
                               </div>
                             )}
                             {isPending && (
-                              <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-xs">
+                              <div className="inline-flex items-center gap-1.5 text-amber-400 font-semibold text-xs px-2 py-0.5 rounded bg-amber-950/40 border border-amber-500/30">
                                 <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                <span>Pending Approval</span>
+                                <span>{lang === 'bn' ? 'অপেক্ষমান' : 'Pending'}</span>
                               </div>
                             )}
                             {isSuspended && (
-                              <div className="flex items-center gap-1.5 text-rose-400 font-semibold text-xs">
-                                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                                <span>Suspended</span>
+                              <div className="inline-flex items-center gap-1.5 text-rose-400 font-semibold text-xs px-2 py-0.5 rounded bg-rose-950/60 border border-rose-500/40">
+                                <Ban className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                <span>{lang === 'bn' ? 'ব্যানকৃত' : 'Banned'}</span>
                               </div>
                             )}
                           </td>
@@ -1151,24 +1994,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2">
-                              {/* APPROVE CONTROL */}
-                              {isPending || isSuspended ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* 1. EDIT PLAN & LIMIT CONTROL */}
+                              <button
+                                onClick={() => handleOpenEditUser(item)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/40 rounded-lg shadow-sm transition-all cursor-pointer"
+                                title={lang === 'bn' ? 'প্যাকেজ ও লিমিট পরিবর্তন করুন' : 'Edit Package & Quota Limit'}
+                              >
+                                <Sliders className="w-3.5 h-3.5" />
+                                <span className="hidden xl:inline">{lang === 'bn' ? 'প্যাকেজ ও লিমিট' : 'Plan & Limit'}</span>
+                              </button>
+
+                              {/* 2. APPROVE IF PENDING */}
+                              {isPending && (
                                 <button
                                   onClick={() => handleApprove(item.id)}
-                                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg shadow-sm shadow-emerald-500/20 transition-all cursor-pointer"
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg shadow-sm shadow-emerald-500/20 transition-all cursor-pointer"
                                   title="Approve this merchant registration"
                                 >
                                   <UserCheck className="w-3.5 h-3.5" />
                                   <span>{lang === 'bn' ? 'অনুমোদন' : 'Approve'}</span>
                                 </button>
-                              ) : (
-                                <span className="text-[11px] text-emerald-400 font-medium px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/30">
-                                  Approved
-                                </span>
                               )}
 
-                              {/* DELETE CONTROL */}
+                              {/* 3. BAN / UNBAN CONTROL */}
+                              {!isRootAdmin && (
+                                <button
+                                  onClick={() => handleToggleBan(item)}
+                                  className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                                    isSuspended
+                                      ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/80'
+                                      : 'bg-rose-950/40 border-rose-500/40 text-rose-300 hover:bg-rose-900/60'
+                                  }`}
+                                  title={
+                                    isSuspended
+                                      ? (lang === 'bn' ? 'আনব্যান করুন' : 'Unban User')
+                                      : (lang === 'bn' ? 'ব্যান করুন' : 'Ban User')
+                                  }
+                                >
+                                  {isSuspended ? (
+                                    <>
+                                      <UserCheck className="w-3.5 h-3.5" />
+                                      <span>{lang === 'bn' ? 'আনব্যান' : 'Unban'}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Ban className="w-3.5 h-3.5" />
+                                      <span>{lang === 'bn' ? 'ব্যান' : 'Ban'}</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+
+                              {/* 4. DELETE CONTROL */}
                               <button
                                 onClick={() => setUserToDelete(item)}
                                 disabled={isRootAdmin}
@@ -1195,7 +2073,1220 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* =========================================================================
-          TAB 2: PACKAGE PRICING & PAYMENT WALLET MANAGEMENT
+          TAB: PACKAGE & PAYMENT UPGRADE REQUESTS (APPROVE / REJECT / DELETE)
+         ========================================================================= */}
+      {adminTab === 'packages' && (
+        <section className="space-y-6 animate-fade-in">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Package className="w-5 h-5 text-cyan-400" />
+                <span>{lang === 'bn' ? 'প্যাকেজ ও পেমেন্ট রিকোয়েস্ট ম্যানেজমেন্ট' : 'Package Upgrade & Payment Requests'}</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                {lang === 'bn'
+                  ? 'মার্চেন্টদের পাঠানো বিকাশ, নগদ ও রকেট পেমেন্ট ট্রানজেকশন যাচাই করে প্যাকেজ অনুমোদন (Approve), বাতিল (Reject) বা মুছে ফেলুন (Delete)।'
+                  : 'Review merchant bKash, Nagad & Rocket payments to approve packages, reject invalid TrxIDs, or delete records.'}
+              </p>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+                <span className="text-slate-400">{lang === 'bn' ? 'মোট:' : 'Total:'} </span>
+                <span className="font-mono font-bold text-white tabular-nums">{payments.length}</span>
+              </div>
+              <div className="px-3 py-1.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300">
+                <span>{lang === 'bn' ? 'অপেক্ষমান:' : 'Pending:'} </span>
+                <span className="font-mono font-bold text-amber-400 tabular-nums">{pendingPackagesCount}</span>
+              </div>
+              <div className="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300">
+                <span>{lang === 'bn' ? 'অনুমোদিত:' : 'Approved:'} </span>
+                <span className="font-mono font-bold text-emerald-400 tabular-nums">
+                  {payments.filter((p) => p.status === 'verified').length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Filter buttons */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl text-xs w-full sm:w-auto overflow-x-auto">
+              <button
+                onClick={() => setPackageFilter('all')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
+                  packageFilter === 'all'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {lang === 'bn' ? 'সকল রিকোয়েস্ট' : 'All Requests'} ({payments.length})
+              </button>
+
+              <button
+                onClick={() => setPackageFilter('pending')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  packageFilter === 'pending'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>{lang === 'bn' ? 'অপেক্ষমান' : 'Pending'}</span>
+                <span className="font-mono font-bold text-[11px] tabular-nums">({pendingPackagesCount})</span>
+              </button>
+
+              <button
+                onClick={() => setPackageFilter('verified')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  packageFilter === 'verified'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{lang === 'bn' ? 'অনুমোদিত' : 'Approved'}</span>
+                <span className="font-mono font-bold text-[11px] tabular-nums">
+                  ({payments.filter((p) => p.status === 'verified').length})
+                </span>
+              </button>
+
+              <button
+                onClick={() => setPackageFilter('rejected')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  packageFilter === 'rejected'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                <span>{lang === 'bn' ? 'বাতিলকৃত' : 'Rejected'}</span>
+                <span className="font-mono font-bold text-[11px] tabular-nums">
+                  ({payments.filter((p) => p.status === 'rejected').length})
+                </span>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={packageSearchQuery}
+                onChange={(e) => setPackageSearchQuery(e.target.value)}
+                placeholder={lang === 'bn' ? 'TrxID, মোবাইল বা ইমেইল খুঁজুন...' : 'Search TrxID, phone, email...'}
+                className="w-full bg-slate-900 border border-slate-800 text-xs text-white pl-9 pr-8 py-2 rounded-xl outline-none focus:border-cyan-400 transition-colors placeholder:text-slate-500"
+              />
+              {packageSearchQuery && (
+                <button
+                  onClick={() => setPackageSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Package Requests Table */}
+          <div className="rounded-2xl border border-slate-800 bg-[#0d1527] overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900/90 border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-semibold font-mono">
+                  <tr>
+                    <th scope="col" className="px-4 py-3.5">
+                      {lang === 'bn' ? 'তারিখ ও সময়' : 'Submitted Date'}
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      {lang === 'bn' ? 'মার্চেন্ট ইমেইল' : 'Merchant'}
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      {lang === 'bn' ? 'আবেদিত প্যাকেজ ও মূল্য' : 'Requested Plan'}
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      {lang === 'bn' ? 'পেমেন্ট গেটওয়ে ও নম্বর' : 'Gateway & Sender Phone'}
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      {lang === 'bn' ? 'ট্রানজেকশন আইডি (TrxID)' : 'TrxID'}
+                    </th>
+                    <th scope="col" className="px-4 py-3.5">
+                      {lang === 'bn' ? 'স্ট্যাটাস' : 'Status'}
+                    </th>
+                    <th scope="col" className="px-4 py-3.5 text-right">
+                      {lang === 'bn' ? 'এডমিন অ্যাকশন' : 'Admin Actions'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-sans">
+                  {filteredPayments.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                        <Package className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                        <p>{lang === 'bn' ? 'কোনো প্যাকেজ রিকোয়েস্ট পাওয়া যায়নি।' : 'No package requests match criteria.'}</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredPayments.map((p) => {
+                      const isPending = p.status === 'pending';
+                      const isVerified = p.status === 'verified';
+                      const isRejected = p.status === 'rejected';
+
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
+                          {/* Date */}
+                          <td className="px-4 py-3.5 text-slate-400 font-mono text-[11px] tabular-nums whitespace-nowrap">
+                            <div>
+                              {new Date(p.submittedAt).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              {new Date(p.submittedAt).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                          </td>
+
+                          {/* Merchant Email */}
+                          <td className="px-4 py-3.5">
+                            <div className="space-y-0.5">
+                              <span className="font-semibold text-white block truncate max-w-[180px]">
+                                {p.userEmail || 'merchant@example.com'}
+                              </span>
+                              <span className="text-[10px] text-cyan-400 font-mono">
+                                ID: {p.id}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Requested Plan */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <div className="space-y-0.5">
+                              <span className="font-medium text-slate-200 block truncate">{p.planName}</span>
+                              <span className="text-[11px] text-cyan-400 font-bold font-mono tabular-nums">
+                                ৳{p.amountBDT.toLocaleString()} BDT
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Gateway & Sender */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
+                                    p.paymentMethod === 'bkash'
+                                      ? 'bg-pink-950/70 border border-pink-500/40 text-pink-400'
+                                      : p.paymentMethod === 'nagad'
+                                      ? 'bg-orange-950/70 border border-orange-500/40 text-orange-400'
+                                      : 'bg-purple-950/70 border border-purple-500/40 text-purple-400'
+                                  }`}
+                                >
+                                  {p.paymentMethod}
+                                </span>
+                              </div>
+                              <span className="text-slate-300 font-mono text-[11px] block">
+                                {p.senderNumber}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* TrxID */}
+                          <td className="px-4 py-3.5 whitespace-nowrap font-mono text-[11px]">
+                            <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded border border-slate-800 w-fit">
+                              <span className="font-bold text-slate-200 tracking-wider">{p.transactionId}</span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(p.transactionId);
+                                  showFeedback(
+                                    lang === 'bn' ? 'TrxID কপি করা হয়েছে!' : 'TrxID copied to clipboard!',
+                                    'info'
+                                  );
+                                }}
+                                className="text-slate-500 hover:text-cyan-400 transition-colors cursor-pointer"
+                                title="Copy TrxID"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            {isPending && (
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-950/50 border border-amber-500/40 text-amber-300">
+                                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                                <span>{lang === 'bn' ? 'অপেক্ষমান' : 'Pending'}</span>
+                              </div>
+                            )}
+                            {isVerified && (
+                              <div className="space-y-0.5">
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-950/50 border border-emerald-500/40 text-emerald-300">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>{lang === 'bn' ? 'অনুমোদিত' : 'Approved'}</span>
+                                </div>
+                                {p.customLimitGranted && (
+                                  <span className="block text-[10px] text-cyan-300 font-mono">
+                                    Limit: {p.customLimitGranted.toLocaleString()} checks
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {isRejected && (
+                              <div className="space-y-0.5">
+                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-rose-950/50 border border-rose-500/40 text-rose-300">
+                                  <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>{lang === 'bn' ? 'বাতিলকৃত' : 'Rejected'}</span>
+                                </div>
+                                {p.rejectionReason && (
+                                  <span className="block text-[10px] text-slate-400 max-w-[140px] truncate" title={p.rejectionReason}>
+                                    {p.rejectionReason}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* APPROVE ACTION */}
+                              {isPending && (
+                                <button
+                                  onClick={() => handleOpenApprovePackage(p)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-950 bg-emerald-400 hover:bg-emerald-300 rounded-lg shadow-sm shadow-emerald-500/20 transition-all cursor-pointer"
+                                  title={lang === 'bn' ? 'প্যাকেজ অনুমোদন ও লিমিট যোগ করুন' : 'Approve package & assign checks'}
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>{lang === 'bn' ? 'অনুমোদন' : 'Approve'}</span>
+                                </button>
+                              )}
+
+                              {/* REJECT ACTION */}
+                              {isPending && (
+                                <button
+                                  onClick={() => handleOpenRejectPackage(p)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-300 bg-rose-950/60 hover:bg-rose-900/80 border border-rose-500/40 rounded-lg transition-all cursor-pointer"
+                                  title={lang === 'bn' ? 'রিকোয়েস্ট বাতিল করুন' : 'Reject request'}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>{lang === 'bn' ? 'বাতিল' : 'Reject'}</span>
+                                </button>
+                              )}
+
+                              {/* RE-APPROVE FOR REJECTED */}
+                              {isRejected && (
+                                <button
+                                  onClick={() => handleOpenApprovePackage(p)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 rounded-lg transition-all cursor-pointer"
+                                  title="Re-approve package"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>{lang === 'bn' ? 'অনুমোদন' : 'Approve'}</span>
+                                </button>
+                              )}
+
+                              {/* DELETE RECORD ACTION */}
+                              <button
+                                onClick={() => handleOpenDeletePackage(p)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                title={lang === 'bn' ? 'প্যাকেজ রেকর্ড মুছে ফেলুন' : 'Delete payment record'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          TAB: SMARTPOS MULTI-API KEY POOL & AUTOMATIC FAILOVER
+         ========================================================================= */}
+      {adminTab === 'smartpos' && (
+        <section className="space-y-6 animate-fade-in">
+          {/* Section Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <Gauge className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>{lang === 'bn' ? 'SmartPOS মাল্টি-কী অটো-রোলওভার পুল' : 'SmartPOS Multi-API Key Failover Pool'}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/70 text-cyan-400 border border-cyan-500/30 font-mono">
+                      {smartposPoolSummary.totalCapacity.toLocaleString()} Quota Pool
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {lang === 'bn'
+                      ? 'প্রতিটি SmartPOS API কী-এর মাসিক ১,০০০ চেক লিমিট রয়েছে। ১,০০০ লিমিট পূর্ণ হলে বা কোটা এরর এলে ট্রাফিক স্বয়ংক্রিয়ভাবে পরবর্তী কী-তে রোলওভার হবে।'
+                      : 'Each SmartPOS API key has a 1,000 checks/month limit. Traffic automatically cascades to the next key when limit or quota error occurs.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={handleSimulateRollover}
+                disabled={isSimulatingRollover || !smartposPoolSummary.activeServingKey}
+                className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-amber-300 bg-amber-950/50 hover:bg-amber-900/60 border border-amber-500/40 rounded-xl transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                title={lang === 'bn' ? '১,০০০ লিমিট পূর্ণ হওয়া সিমুলেট করুন' : 'Simulate 1,000 exhaustion and test rollover'}
+              >
+                <Shuffle className={`w-3.5 h-3.5 ${isSimulatingRollover ? 'animate-spin' : ''}`} />
+                <span>
+                  {isSimulatingRollover
+                    ? (lang === 'bn' ? 'রোলওভার হচ্ছে...' : 'Rolling over...')
+                    : (lang === 'bn' ? 'রোলওভার টেস্ট করুন' : 'Test Auto-Rollover')}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAddKeyModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl shadow-md shadow-cyan-500/20 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{lang === 'bn' ? 'নতুন কী যোগ করুন' : 'Add API Key'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Summary Tiles */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Active Serving Key */}
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-cyan-500/30 space-y-2 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">{lang === 'bn' ? 'বর্তমান সক্রিয় সার্ভিং কী' : 'Active Serving Key'}</span>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-base font-bold text-white block truncate">
+                  {smartposPoolSummary.activeServingKey ? smartposPoolSummary.activeServingKey.name : (lang === 'bn' ? 'কোনো কী সক্রিয় নেই' : 'No Active Key')}
+                </span>
+                <span className="text-[11px] text-cyan-300 font-mono block">
+                  {smartposPoolSummary.activeServingKey
+                    ? `https://${smartposPoolSummary.activeServingKey.domain || 'api.smartpos.com.bd'}`
+                    : (lang === 'bn' ? 'লোকাল ফ্রড ডাটাবেস সক্রিয়' : 'Using Local Dispute DB')}
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-400 font-medium">
+                {smartposPoolSummary.activeServingKey
+                  ? `${Math.max(0, smartposPoolSummary.activeServingKey.monthlyLimit - smartposPoolSummary.activeServingKey.usageCount).toLocaleString()} checks left on this key`
+                  : 'Fallback to verified community fraud engine'}
+              </p>
+            </div>
+
+            {/* Total Pool Capacity */}
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-2">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'মোট পুল ধারণক্ষমতা' : 'Total Pool Capacity'}</span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-extrabold text-white font-mono tabular-nums">
+                  {smartposPoolSummary.remainingChecks.toLocaleString()}
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  / {smartposPoolSummary.totalCapacity.toLocaleString()} checks
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="space-y-1">
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, Math.round((smartposPoolSummary.usedChecks / (smartposPoolSummary.totalCapacity || 1)) * 100))}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  {smartposPoolSummary.usedChecks.toLocaleString()} used ({Math.round((smartposPoolSummary.usedChecks / (smartposPoolSummary.totalCapacity || 1)) * 100)}%)
+                </span>
+              </div>
+            </div>
+
+            {/* Standby Keys Ready */}
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-2">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'স্ট্যান্ডবাই ব্যাকআপ কী' : 'Standby Backup Keys'}</span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-extrabold text-cyan-400 font-mono tabular-nums">
+                  {Math.max(0, smartposPoolSummary.activeKeysCount - 1)}
+                </span>
+                <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" /> Ready
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {lang === 'bn' ? '১ম কী শেষ হলে ২য় কী স্বয়ংক্রিয় সক্রিয় হবে' : 'Cascades immediately on limit breach'}
+              </p>
+            </div>
+
+            {/* Exhausted Keys */}
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-2">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? '১,০০০ কোটা পূর্ণ কী' : 'Exhausted Keys'}</span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-extrabold text-amber-400 font-mono tabular-nums">
+                  {smartposPoolSummary.exhaustedKeysCount}
+                </span>
+                <span className="text-[11px] text-slate-400">of {smartposKeys.length} total</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {lang === 'bn' ? 'রিসেট চাপলে পুনরায় ১,০০০ চেক পাওয়া যাবে' : 'Click reset to restore 1,000 quota'}
+              </p>
+            </div>
+          </div>
+
+          {/* =========================================================================
+              NEW SECTION MODULE: INPUT FORM TO ADD MULTIPLE API KEYS
+             ========================================================================= */}
+          <div className="rounded-2xl bg-[#0d1527] border border-cyan-500/30 overflow-hidden shadow-xl transition-all">
+            {/* Form Header / Collapse Bar */}
+            <div className="p-4 sm:p-5 border-b border-slate-800 bg-slate-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <PlusCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <span>{lang === 'bn' ? 'মাল্টিপল SmartPOS API কী ইনপুট ফরম' : 'Add Multiple SmartPOS API Keys'}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/70 text-cyan-400 border border-cyan-500/30 font-mono">
+                      Bulk Key Importer
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {lang === 'bn'
+                      ? 'একসাথে একাধিক API কী পুলে যোগ করুন। প্রতিটির জন্য ১,০০০ চেক লিমিট স্বয়ংক্রিয়ভাবে কার্যকর হবে।'
+                      : 'Configure multiple SmartPOS API keys simultaneously for auto-failover and pool capacity expansion.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Mode Switcher & Collapse Toggle */}
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMultiKeyMode('rows');
+                      setIsMultiKeyFormOpen(true);
+                    }}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                      multiKeyMode === 'rows'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {lang === 'bn' ? 'ডাইনামিক ফিল্ডস' : 'Key Rows Form'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMultiKeyMode('bulk');
+                      setIsMultiKeyFormOpen(true);
+                    }}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                      multiKeyMode === 'bulk'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {lang === 'bn' ? 'বাল্ক টেক্সট পেস্ট' : 'Bulk Paste'}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMultiKeyFormOpen(!isMultiKeyFormOpen)}
+                  className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                  title={isMultiKeyFormOpen ? 'Collapse form' : 'Expand form'}
+                >
+                  {isMultiKeyFormOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Form Body */}
+            {isMultiKeyFormOpen && (
+              <div className="p-4 sm:p-6 space-y-5 animate-fade-in">
+                {/* MODE 1: DYNAMIC ROWS FORM */}
+                {multiKeyMode === 'rows' && (
+                  <form onSubmit={handleSubmitMultiKeyRows} className="space-y-4">
+                    <div className="space-y-3">
+                      {multiKeyRows.map((row, index) => (
+                        <div
+                          key={row.id}
+                          className="p-3.5 sm:p-4 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-3"
+                        >
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 text-cyan-400 font-mono font-bold text-xs flex items-center justify-center">
+                              #{index + 1}
+                            </span>
+                          </div>
+
+                          {/* Key Name / Label */}
+                          <div className="flex-1 min-w-[150px]">
+                            <label className="text-[11px] text-slate-400 block mb-1 font-medium sm:hidden">
+                              {lang === 'bn' ? 'কী নাম' : 'Key Label'}
+                            </label>
+                            <input
+                              type="text"
+                              value={row.name}
+                              onChange={(e) => handleUpdateMultiKeyRow(row.id, 'name', e.target.value)}
+                              placeholder={`SmartPOS Key #${smartposKeys.length + index + 1}`}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-400"
+                            />
+                          </div>
+
+                          {/* API Key Token */}
+                          <div className="flex-2 min-w-[220px]">
+                            <label className="text-[11px] text-slate-400 block mb-1 font-medium sm:hidden">
+                              {lang === 'bn' ? 'API কী টোকেন *' : 'API Key Token *'}
+                            </label>
+                            <div className="relative">
+                              <Key className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                value={row.apiKey}
+                                onChange={(e) => handleUpdateMultiKeyRow(row.id, 'apiKey', e.target.value)}
+                                placeholder="fraud_vRSyppIMF080gu4VE1TYRDqHs..."
+                                required={index === 0}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-400 font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Custom Domain */}
+                          <div className="flex-1 min-w-[140px]">
+                            <label className="text-[11px] text-slate-400 block mb-1 font-medium sm:hidden">
+                              {lang === 'bn' ? 'ডোমেইন (ঐচ্ছিক)' : 'Domain (Optional)'}
+                            </label>
+                            <input
+                              type="text"
+                              value={row.domain}
+                              onChange={(e) => handleUpdateMultiKeyRow(row.id, 'domain', e.target.value)}
+                              placeholder="api.smartpos.com.bd"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-400 font-mono"
+                            />
+                          </div>
+
+                          {/* Monthly Limit */}
+                          <div className="w-full sm:w-28 shrink-0">
+                            <label className="text-[11px] text-slate-400 block mb-1 font-medium sm:hidden">
+                              {lang === 'bn' ? 'মাসিক লিমিট' : 'Monthly Limit'}
+                            </label>
+                            <input
+                              type="number"
+                              min="100"
+                              max="100000"
+                              value={row.monthlyLimit}
+                              onChange={(e) =>
+                                handleUpdateMultiKeyRow(row.id, 'monthlyLimit', Number(e.target.value))
+                              }
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-cyan-400 font-mono font-bold text-center"
+                            />
+                          </div>
+
+                          {/* Remove Row Button */}
+                          <div className="flex justify-end sm:justify-center shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMultiKeyRow(row.id)}
+                              disabled={multiKeyRows.length <= 1}
+                              className={`p-2 rounded-lg transition-colors ${
+                                multiKeyRows.length <= 1
+                                  ? 'text-slate-700 cursor-not-allowed'
+                                  : 'text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer'
+                              }`}
+                              title="Remove row"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Form Bottom Bar: Add Row & Submit All */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                      <button
+                        type="button"
+                        onClick={handleAddMultiKeyRow}
+                        className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 rounded-xl transition-all cursor-pointer w-fit"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{lang === 'bn' ? '+ আরেকটি কী রো যোগ করুন' : '+ Add Another Key Row'}</span>
+                      </button>
+
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-xs text-slate-400 hidden md:inline">
+                          {lang === 'bn'
+                            ? `পুলের মোট ধারণক্ষমতা +${(multiKeyRows.filter((r) => r.apiKey.trim().length > 0).length * 1000).toLocaleString()} বৃদ্ধি পাবে`
+                            : `Adds +${(multiKeyRows.filter((r) => r.apiKey.trim().length > 0).length * 1000).toLocaleString()} checks to capacity`}
+                        </span>
+
+                        <button
+                          type="submit"
+                          disabled={isSubmittingMultiKeys}
+                          className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>
+                            {isSubmittingMultiKeys
+                              ? (lang === 'bn' ? 'সংরক্ষণ হচ্ছে...' : 'Saving keys...')
+                              : (lang === 'bn'
+                                  ? `সবগুলো কী পুলে যুক্ত করুন (${multiKeyRows.filter((r) => r.apiKey.trim().length > 0).length})`
+                                  : `Add All Keys to Pool (${multiKeyRows.filter((r) => r.apiKey.trim().length > 0).length})`)}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* MODE 2: BULK RAW TEXT PASTE */}
+                {multiKeyMode === 'bulk' && (
+                  <form onSubmit={handleSubmitBulkPaste} className="space-y-4 text-xs">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-slate-300 font-medium">
+                          {lang === 'bn' ? 'প্রতি লাইনে একটি করে API কী পেস্ট করুন' : 'Paste API Keys (One per line)'}
+                        </label>
+                        <span className="text-[11px] text-slate-500">
+                          Format: [Key Name, API_KEY, Domain, Limit] or just [API_KEY]
+                        </span>
+                      </div>
+                      <textarea
+                        rows={5}
+                        value={bulkPasteText}
+                        onChange={(e) => setBulkPasteText(e.target.value)}
+                        placeholder={`fraud_vRSyppIMF080gu4VE1TYRDqHsYIPL0Ms\nfraud_k982j3h4g5f6d7s8a9q0w1e2r3t4y5u6\nAccount 3 Backup, fraud_m1n2b3v4c5x6z7l8k9j0h1g2f3d4s5a6, api.smartpos.com.bd, 1000`}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-white placeholder-slate-600 outline-none focus:border-cyan-400 font-mono text-xs leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                      <p className="text-[11px] text-slate-400">
+                        {lang === 'bn'
+                          ? 'প্রতিটি কী-এর জন্য ডিফল্ট ১,০০০ মাসিক লিমিট সহ পুলে যোগ করা হবে।'
+                          : 'Each recognized key expands pool capacity by 1,000 monthly checks.'}
+                      </p>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmittingMultiKeys || !bulkPasteText.trim()}
+                        className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>
+                          {isSubmittingMultiKeys
+                            ? (lang === 'bn' ? 'ইমপোর্ট হচ্ছে...' : 'Importing...')
+                            : (lang === 'bn' ? 'সবগুলো কী ইমপোর্ট করুন' : 'Import All API Keys')}
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* =========================================================================
+              LIST VIEW DISPLAYING ALL KEYS & ACTIVATION TOGGLE SWITCHES
+             ========================================================================= */}
+          <div className="space-y-4">
+            {/* Header & View Switcher */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Key className="w-4 h-4 text-cyan-400" />
+                  <span>{lang === 'bn' ? 'কনফিগার করা SmartPOS API কী তালিকা' : 'Configured SmartPOS API Key Pool'}</span>
+                  <span className="text-xs text-slate-500 font-normal">
+                    ({smartposKeys.length} keys · {smartposPoolSummary.activeKeysCount} active)
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {lang === 'bn'
+                    ? 'যেকোনো কী সক্রিয় বা নিষ্ক্রিয় করতে সরাসরি টগল সুইচ (Toggle Switch) ব্যবহার করুন।'
+                    : 'Use the interactive toggle switch to instantly activate or deactivate specific API keys.'}
+                </p>
+              </div>
+
+              {/* View Switcher: List vs Grid */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setSmartposViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                    smartposViewMode === 'list'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>{lang === 'bn' ? 'লিস্ট ভিউ' : 'List View'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSmartposViewMode('grid')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                    smartposViewMode === 'grid'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>{lang === 'bn' ? 'গ্রিড কার্ডস' : 'Grid Cards'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* TABULAR LIST VIEW (DEFAULT) */}
+            {smartposViewMode === 'list' && (
+              <div className="rounded-2xl bg-[#0d1527] border border-slate-800 overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800/80 bg-slate-900/60 text-slate-400 font-semibold">
+                        <th className="px-4 py-3.5 whitespace-nowrap">{lang === 'bn' ? 'অগ্রাধিকার / ট্রাফিক' : '# / Traffic'}</th>
+                        <th className="px-4 py-3.5 whitespace-nowrap">{lang === 'bn' ? 'কী বিবরণ' : 'Key Details'}</th>
+                        <th className="px-4 py-3.5 whitespace-nowrap">{lang === 'bn' ? 'API কী টোকেন' : 'API Key Token'}</th>
+                        <th className="px-4 py-3.5 whitespace-nowrap">{lang === 'bn' ? 'মাসিক ব্যবহার ও লিমিট' : 'Quota & Usage'}</th>
+                        <th className="px-4 py-3.5 whitespace-nowrap">{lang === 'bn' ? 'স্ট্যাটাস' : 'Status'}</th>
+                        <th className="px-4 py-3.5 text-center whitespace-nowrap">
+                          {lang === 'bn' ? 'সক্রিয় / নিষ্ক্রিয় টগল' : 'Activate / Deactivate'}
+                        </th>
+                        <th className="px-4 py-3.5 text-right whitespace-nowrap">{lang === 'bn' ? 'অ্যাকশন' : 'Actions'}</th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-slate-800/60">
+                      {smartposKeys.map((k, index) => {
+                        const isServing = smartposPoolSummary.activeServingKey?.id === k.id;
+                        const percentUsed = Math.min(100, Math.round((k.usageCount / k.monthlyLimit) * 100));
+                        const remaining = Math.max(0, k.monthlyLimit - k.usageCount);
+                        const isExhausted = k.status === 'exhausted' || k.usageCount >= k.monthlyLimit;
+                        const isDisabled = k.status === 'disabled';
+
+                        return (
+                          <tr
+                            key={k.id}
+                            className={`hover:bg-slate-900/40 transition-colors ${
+                              isServing ? 'bg-emerald-950/15' : isDisabled ? 'opacity-65' : ''
+                            }`}
+                          >
+                            {/* # / Serving Indicator */}
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-xs font-bold text-slate-400">#{index + 1}</span>
+                                {isServing ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                                    </span>
+                                    <span>{lang === 'bn' ? 'সার্ভিং' : 'Serving'}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-500 font-mono">
+                                    {isDisabled
+                                      ? (lang === 'bn' ? 'বন্ধ' : 'Paused')
+                                      : isExhausted
+                                      ? (lang === 'bn' ? 'কোটা শেষ' : 'Capped')
+                                      : (lang === 'bn' ? 'স্ট্যান্ডবাই' : 'Standby')}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Key Details */}
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <div className="space-y-0.5">
+                                <span className="font-bold text-white text-xs block">{k.name}</span>
+                                <span className="text-[11px] text-slate-400 font-mono block">
+                                  https://{k.domain || 'api.smartpos.com.bd'}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Masked Token */}
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-950 border border-slate-800">
+                                <Key className="w-3 h-3 text-slate-500 shrink-0" />
+                                <span className="font-mono text-[11px] text-slate-300">
+                                  {k.apiKey.length > 14
+                                    ? `${k.apiKey.slice(0, 8)}••••${k.apiKey.slice(-4)}`
+                                    : '••••••••••••'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(k.apiKey);
+                                    showFeedback(lang === 'bn' ? 'API কী কপি করা হয়েছে!' : 'API key copied!', 'info');
+                                  }}
+                                  className="text-slate-500 hover:text-cyan-400 transition-colors cursor-pointer"
+                                  title="Copy Key"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+
+                            {/* Quota Progress */}
+                            <td className="px-4 py-3.5 whitespace-nowrap min-w-[180px]">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="font-mono text-white font-semibold tabular-nums">
+                                    {k.usageCount.toLocaleString()} / {k.monthlyLimit.toLocaleString()}
+                                  </span>
+                                  <span
+                                    className={`font-mono text-[10px] ${
+                                      remaining <= 50
+                                        ? 'text-rose-400 font-bold'
+                                        : remaining <= 250
+                                        ? 'text-amber-400'
+                                        : 'text-emerald-400'
+                                    }`}
+                                  >
+                                    {remaining.toLocaleString()} left
+                                  </span>
+                                </div>
+
+                                <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                                  <div
+                                    className={`h-full transition-all duration-500 rounded-full ${
+                                      percentUsed >= 95 || isExhausted
+                                        ? 'bg-rose-500'
+                                        : percentUsed >= 75
+                                        ? 'bg-amber-400'
+                                        : 'bg-emerald-400'
+                                    }`}
+                                    style={{ width: `${percentUsed}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Status Badge */}
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              {isServing ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
+                                  <CheckCircle className="w-3 h-3 text-emerald-400 shrink-0" />
+                                  <span>{lang === 'bn' ? 'লাইভ সক্রিয়' : 'Live Active'}</span>
+                                </span>
+                              ) : isExhausted ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950/60 border border-amber-500/40 text-amber-300">
+                                  <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                                  <span>{lang === 'bn' ? '১,০০০ কোটা শেষ' : 'Limit Exhausted'}</span>
+                                </span>
+                              ) : isDisabled ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-400">
+                                  <Ban className="w-3 h-3 text-slate-500 shrink-0" />
+                                  <span>{lang === 'bn' ? 'নিষ্ক্রিয়' : 'Deactivated'}</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-950/50 border border-blue-500/40 text-blue-300">
+                                  <Clock className="w-3 h-3 text-blue-400 shrink-0" />
+                                  <span>{lang === 'bn' ? 'স্ট্যান্ডবাই রেডি' : 'Standby Ready'}</span>
+                                </span>
+                              )}
+                            </td>
+
+                            {/* TOGGLE SWITCH TO ACTIVATE / DEACTIVATE */}
+                            <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                              <div className="flex flex-col items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  role="switch"
+                                  aria-checked={!isDisabled}
+                                  onClick={() => handleToggleSmartposKey(k)}
+                                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-500/40 ${
+                                    !isDisabled ? 'bg-emerald-500 shadow-md shadow-emerald-950/40' : 'bg-slate-700'
+                                  }`}
+                                  title={!isDisabled ? 'Click to deactivate key' : 'Click to activate key'}
+                                >
+                                  <span
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                      !isDisabled ? 'translate-x-5' : 'translate-x-0'
+                                    }`}
+                                  />
+                                </button>
+                                <span className={`text-[10px] font-semibold ${!isDisabled ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                  {!isDisabled ? (lang === 'bn' ? 'সক্রিয়' : 'Active') : (lang === 'bn' ? 'বন্ধ' : 'Deactivated')}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Action Buttons */}
+                            <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {/* Reset Quota Counter */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleResetSmartposKey(k.id)}
+                                  className="p-1.5 rounded-lg text-emerald-400 bg-emerald-950/30 hover:bg-emerald-900/60 border border-emerald-500/30 transition-all cursor-pointer"
+                                  title={lang === 'bn' ? 'কাউন্টার ০ তে রিসেট করুন' : 'Reset usage counter'}
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Edit Limit */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingSmartposKey(k);
+                                    setEditKeyMonthlyLimit(k.monthlyLimit);
+                                    setEditKeyStatus(k.status);
+                                  }}
+                                  className="p-1.5 rounded-lg text-cyan-300 bg-cyan-950/30 hover:bg-cyan-900/60 border border-cyan-500/30 transition-all cursor-pointer"
+                                  title="Edit key limit & settings"
+                                >
+                                  <Sliders className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Delete */}
+                                <button
+                                  type="button"
+                                  onClick={() => setKeyToDelete(k)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                  title="Delete key"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* GRID CARDS VIEW (ALTERNATIVE VIEW) */}
+            {smartposViewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-fade-in">
+                {smartposKeys.map((k, index) => {
+                  const isServing = smartposPoolSummary.activeServingKey?.id === k.id;
+                  const percentUsed = Math.min(100, Math.round((k.usageCount / k.monthlyLimit) * 100));
+                  const remaining = Math.max(0, k.monthlyLimit - k.usageCount);
+                  const isExhausted = k.status === 'exhausted' || k.usageCount >= k.monthlyLimit;
+                  const isDisabled = k.status === 'disabled';
+
+                  return (
+                    <div
+                      key={k.id}
+                      className={`p-5 rounded-2xl border transition-all space-y-4 relative ${
+                        isServing
+                          ? 'bg-[#0b162c] border-emerald-500/50 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-500/30'
+                          : isDisabled
+                          ? 'bg-slate-900/60 border-slate-800 opacity-70'
+                          : isExhausted
+                          ? 'bg-[#150d15] border-amber-500/40'
+                          : 'bg-[#0d1527] border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {/* Top Row: Name & Status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300">
+                              #{index + 1}
+                            </span>
+                            <h4 className="font-bold text-white text-sm tracking-tight">{k.name}</h4>
+                          </div>
+                          <span className="text-[11px] text-slate-400 font-mono block">
+                            https://{k.domain || 'api.smartpos.com.bd'}
+                          </span>
+                        </div>
+
+                        {/* Status Badges */}
+                        <div>
+                          {isServing ? (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                              </span>
+                              <span>{lang === 'bn' ? 'লাইভ সার্ভিং' : 'Live Serving'}</span>
+                            </div>
+                          ) : isExhausted ? (
+                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              <span>{lang === 'bn' ? 'কোটা পূর্ণ' : 'Exhausted'}</span>
+                            </div>
+                          ) : isDisabled ? (
+                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                              <Ban className="w-3.5 h-3.5 shrink-0" />
+                              <span>{lang === 'bn' ? 'নিষ্ক্রিয়' : 'Deactivated'}</span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">
+                              <Clock className="w-3.5 h-3.5 shrink-0" />
+                              <span>{lang === 'bn' ? 'স্ট্যান্ডবাই' : 'Standby'}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Masked API Token with Copy */}
+                      <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Key className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="font-mono text-xs text-slate-300 truncate">
+                            {k.apiKey.length > 14
+                              ? `${k.apiKey.slice(0, 8)}••••••••${k.apiKey.slice(-4)}`
+                              : '••••••••••••'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(k.apiKey);
+                            showFeedback(lang === 'bn' ? 'API কী কপি করা হয়েছে!' : 'API key copied!', 'info');
+                          }}
+                          className="p-1 rounded text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer shrink-0"
+                          title="Copy API Key"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Visual Usage Progress Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400 font-medium">
+                            {lang === 'bn' ? 'মাসিক চেক ব্যবহার' : 'Monthly Usage'}
+                          </span>
+                          <span className="font-mono font-bold text-white tabular-nums">
+                            {k.usageCount.toLocaleString()} / {k.monthlyLimit.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                          <div
+                            className={`h-full transition-all duration-500 rounded-full ${
+                              percentUsed >= 95 || isExhausted
+                                ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                                : percentUsed >= 75
+                                ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                                : 'bg-gradient-to-r from-emerald-400 to-teal-500'
+                            }`}
+                            style={{ width: `${percentUsed}%` }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500 font-mono">{percentUsed}% utilized</span>
+                          <span
+                            className={`font-mono font-semibold ${
+                              remaining <= 50 ? 'text-rose-400' : remaining <= 250 ? 'text-amber-400' : 'text-emerald-400'
+                            }`}
+                          >
+                            {remaining.toLocaleString()} {lang === 'bn' ? 'চেক বাকি' : 'remaining'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Error / Rollover notice if any */}
+                      {k.lastError && (
+                        <div className="p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-[11px] text-rose-300 flex items-start gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                          <span className="leading-tight">{k.lastError}</span>
+                        </div>
+                      )}
+
+                      {/* Action Bar with Toggle Switch */}
+                      <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-800/80">
+                        {/* TOGGLE SWITCH */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={!isDisabled}
+                            onClick={() => handleToggleSmartposKey(k)}
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              !isDisabled ? 'bg-emerald-500' : 'bg-slate-700'
+                            }`}
+                            title={!isDisabled ? 'Deactivate key' : 'Activate key'}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                !isDisabled ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                          <span className={`text-[11px] font-semibold ${!isDisabled ? 'text-emerald-400' : 'text-slate-400'}`}>
+                            {!isDisabled ? (lang === 'bn' ? 'সক্রিয়' : 'Active') : (lang === 'bn' ? 'বন্ধ' : 'Off')}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          {/* Recharge / Reset */}
+                          <button
+                            type="button"
+                            onClick={() => handleResetSmartposKey(k.id)}
+                            className="p-1.5 text-xs text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 rounded-lg transition-all cursor-pointer"
+                            title={lang === 'bn' ? 'ব্যবহার কাউন্টার ০ তে রিসেট করুন' : 'Reset usage counter to 0'}
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Edit Limit */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSmartposKey(k);
+                              setEditKeyMonthlyLimit(k.monthlyLimit);
+                              setEditKeyStatus(k.status);
+                            }}
+                            className="p-1.5 text-xs text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 rounded-lg transition-all cursor-pointer"
+                            title="Edit key limit & status"
+                          >
+                            <Sliders className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={() => setKeyToDelete(k)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Delete key"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          TAB: PACKAGE PRICING & PAYMENT WALLET MANAGEMENT
          ========================================================================= */}
       {adminTab === 'pricing' && (
         <section className="space-y-6">
@@ -1506,6 +3597,650 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 1: EDIT USER PACKAGE & LIMIT (ADMIN OVERRIDE)
+         ========================================================================= */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0d1527] border border-cyan-500/40 p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {lang === 'bn' ? 'মার্চেন্ট প্যাকেজ ও লিমিট পরিবর্তন' : 'Edit User Package & Limit'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {editingUser.name} · <span className="font-mono text-cyan-300">{editingUser.email}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingUser(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUserPlanAndLimit} className="space-y-4 text-xs">
+              {/* Plan Tier Selector */}
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">
+                  {lang === 'bn' ? 'সাবস্ক্রিপশন প্যাকেজ নির্ধারণ করুন *' : 'Subscription Plan Tier *'}
+                </label>
+                <select
+                  value={editUserPlanId}
+                  onChange={(e) => {
+                    const newPlanId = e.target.value as 'free' | 'pro' | 'enterprise';
+                    setEditUserPlanId(newPlanId);
+                    if (newPlanId === 'enterprise') {
+                      setEditUserPlanName('Enterprise Unlimited');
+                      setEditUserChecks(99999);
+                    } else if (newPlanId === 'pro') {
+                      setEditUserPlanName('Merchant Pro (2,500 checks)');
+                      setEditUserChecks(2500);
+                    } else {
+                      setEditUserPlanName('Free Starter (100 checks/mo)');
+                      setEditUserChecks(100);
+                    }
+                  }}
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-medium"
+                >
+                  <option value="free">Free Starter Plan (100 checks/mo)</option>
+                  <option value="pro">Merchant Pro Plan (2,500 checks/mo)</option>
+                  <option value="enterprise">Enterprise Plan (Unlimited / 99,999 checks)</option>
+                </select>
+              </div>
+
+              {/* Custom Plan Title / Description */}
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">
+                  {lang === 'bn' ? 'প্যাকেজের প্রদর্শন নাম (Plan Display Label)' : 'Plan Display Label'}
+                </label>
+                <input
+                  type="text"
+                  value={editUserPlanName}
+                  onChange={(e) => setEditUserPlanName(e.target.value)}
+                  placeholder="e.g. Custom VIP Tier"
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2 rounded-xl outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              {/* Credit Checks Remaining Input & Presets */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-slate-300 font-semibold">
+                    {lang === 'bn' ? 'সার্চ ক্রেডিট লিমিট (Checks Remaining) *' : 'Search Checks Limit (Checks Remaining) *'}
+                  </label>
+                  <span className="text-[11px] text-cyan-400 font-mono font-bold tabular-nums">
+                    Current: {editingUser.checksRemaining.toLocaleString()}
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  max="999999"
+                  value={editUserChecks}
+                  onChange={(e) => setEditUserChecks(Math.max(0, parseInt(e.target.value) || 0))}
+                  required
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-mono text-sm font-bold"
+                />
+
+                {/* Preset Fast Adjustment Buttons */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <span className="text-[11px] text-slate-500 mr-1">{lang === 'bn' ? 'কুইক সেট:' : 'Quick Set:'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditUserChecks(100)}
+                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] transition-colors cursor-pointer"
+                  >
+                    100
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditUserChecks(500)}
+                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] transition-colors cursor-pointer"
+                  >
+                    500
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditUserChecks(1000)}
+                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] transition-colors cursor-pointer"
+                  >
+                    1,000
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditUserChecks(2500)}
+                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] transition-colors cursor-pointer"
+                  >
+                    2,500
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditUserChecks(10000)}
+                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] transition-colors cursor-pointer"
+                  >
+                    10,000
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditUserChecks(99999)}
+                    className="px-2 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 font-mono text-[11px] font-bold transition-colors cursor-pointer"
+                  >
+                    Unlimited (99,999)
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Selector */}
+              <div>
+                <label className="text-slate-300 block mb-1 font-semibold">
+                  {lang === 'bn' ? 'অ্যাকাউন্ট স্ট্যাটাস (Account Status)' : 'Account Status'}
+                </label>
+                <select
+                  value={editUserStatus}
+                  onChange={(e) => setEditUserStatus(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-medium"
+                >
+                  <option value="approved">{lang === 'bn' ? 'সক্রিয় (Approved / Active)' : 'Active (Approved)'}</option>
+                  <option value="pending">{lang === 'bn' ? 'অপেক্ষমান (Pending Review)' : 'Pending Review'}</option>
+                  <option value="suspended">{lang === 'bn' ? 'ব্যানকৃত / স্থগিত (Banned / Suspended)' : 'Banned / Suspended'}</option>
+                </select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+                >
+                  {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl shadow-md shadow-cyan-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{lang === 'bn' ? 'পরিবর্তন সংরক্ষণ করুন' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 2: APPROVE PACKAGE REQUEST (WITH CUSTOM LIMIT CONFIG)
+         ========================================================================= */}
+      {packageToApprove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-[#0d1527] border border-emerald-500/40 p-6 shadow-2xl space-y-4 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shrink-0">
+                <CheckCircle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-white">
+                  {lang === 'bn' ? 'প্যাকেজ রিকোয়েস্ট অনুমোদন' : 'Approve Package Upgrade'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {packageToApprove.userEmail || 'Merchant'} · <span className="font-mono text-cyan-300 font-bold">{packageToApprove.planName}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Payment Summary Box */}
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">{lang === 'bn' ? 'পেমেন্ট গেটওয়ে:' : 'Gateway:'}</span>
+                <span className="font-mono font-bold uppercase text-white">{packageToApprove.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">{lang === 'bn' ? 'প্রেরক নম্বর:' : 'Sender Phone:'}</span>
+                <span className="font-mono text-slate-200">{packageToApprove.senderNumber}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">{lang === 'bn' ? 'ট্রানজেকশন আইডি:' : 'TrxID:'}</span>
+                <span className="font-mono font-bold text-cyan-300">{packageToApprove.transactionId}</span>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-slate-800">
+                <span className="text-slate-400">{lang === 'bn' ? 'পরিশোধিত মূল্য:' : 'Amount:'}</span>
+                <span className="font-mono font-extrabold text-emerald-400 text-sm">৳{packageToApprove.amountBDT.toLocaleString()} BDT</span>
+              </div>
+            </div>
+
+            {/* Credit Checks Allocation Input */}
+            <div className="space-y-1.5 text-xs">
+              <label className="text-slate-300 font-semibold block">
+                {lang === 'bn' ? 'গ্রাহককে বরাদ্দকৃত সার্চ লিমিট (Checks to Grant):' : 'Checks to Grant to Merchant:'}
+              </label>
+              <input
+                type="number"
+                min="100"
+                max="999999"
+                value={approvalCustomLimit}
+                onChange={(e) => setApprovalCustomLimit(Math.max(1, parseInt(e.target.value) || 0))}
+                className="w-full bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-xl outline-none focus:border-emerald-400 font-mono font-bold text-sm"
+              />
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <button
+                  type="button"
+                  onClick={() => setApprovalCustomLimit(2500)}
+                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px]"
+                >
+                  Standard Pro (2,500)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApprovalCustomLimit(5000)}
+                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px]"
+                >
+                  Bonus (5,000)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApprovalCustomLimit(99999)}
+                  className="px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-mono text-[10px] font-bold"
+                >
+                  Unlimited (99,999)
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setPackageToApprove(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+              >
+                {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmApprovePackage}
+                className="px-5 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 rounded-xl shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>{lang === 'bn' ? 'অনুমোদন নিশ্চিত করুন' : 'Confirm & Activate'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 3: REJECT PACKAGE REQUEST (WITH REASON)
+         ========================================================================= */}
+      {packageToReject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-[#0d1527] border border-rose-500/40 p-6 shadow-2xl space-y-4 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shrink-0">
+                <XCircle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-white">
+                  {lang === 'bn' ? 'প্যাকেজ রিকোয়েস্ট বাতিল করুন' : 'Reject Package Request'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  TrxID: <span className="font-mono text-rose-300 font-bold">{packageToReject.transactionId}</span> · {packageToReject.userEmail || 'Merchant'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="text-slate-300 font-semibold block">
+                {lang === 'bn' ? 'বাতিলের কারণ উল্লেখ করুন:' : 'Rejection Reason (Audit Note):'}
+              </label>
+              <textarea
+                rows={3}
+                value={rejectionReasonInput}
+                onChange={(e) => setRejectionReasonInput(e.target.value)}
+                placeholder={lang === 'bn' ? 'যেমন: ভুল TrxID বা বিকাশ অ্যাকাউন্টে টাকা জমা পাওয়া যায়নি...' : 'e.g. Invalid TrxID or funds not received...'}
+                className="w-full bg-slate-900 border border-slate-700 text-white p-3 rounded-xl outline-none focus:border-rose-400"
+              />
+
+              {/* Quick Reason Suggestions */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="text-[11px] text-slate-500 mr-1">{lang === 'bn' ? 'কুইক সিলেক্ট:' : 'Quick Select:'}</span>
+                <button
+                  type="button"
+                  onClick={() => setRejectionReasonInput('ভুয়া বা ভুল TrxID প্রদান করা হয়েছে।')}
+                  className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
+                >
+                  ভুয়া TrxID
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRejectionReasonInput('বিকাশ/নগদ অ্যাকাউন্টে টাকা জমা পাওয়া যায়নি।')}
+                  className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
+                >
+                  টাকা জমা হয়নি
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRejectionReasonInput('প্যাকেজের মূল্যের চেয়ে কম টাকা পাঠানো হয়েছে।')}
+                  className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
+                >
+                  অপর্যাপ্ত টাকা
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setPackageToReject(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+              >
+                {lang === 'bn' ? 'ফিরে যান' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectPackage}
+                className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                <span>{lang === 'bn' ? 'বাতিল নিশ্চিত করুন' : 'Confirm Rejection'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 4: DELETE PACKAGE RECORD CONFIRMATION
+         ========================================================================= */}
+      {packageToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-[#0d1527] border border-rose-500/30 p-6 shadow-2xl space-y-4 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {lang === 'bn' ? 'প্যাকেজ রেকর্ড মুছে ফেলতে নিশ্চিত?' : 'Confirm Payment Record Deletion'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {lang === 'bn'
+                    ? `আপনি কি নিশ্চিত যে TrxID: ${packageToDelete.transactionId} (${packageToDelete.planName}) রেকর্ডটি স্থায়ীভাবে মুছে ফেলতে চান?`
+                    : `Are you sure you want to delete payment record ${packageToDelete.transactionId} (${packageToDelete.planName})?`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setPackageToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+              >
+                {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeletePackage}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
+              >
+                {lang === 'bn' ? 'রেকর্ড মুছে ফেলুন' : 'Delete Record'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 5: ADD NEW SMARTPOS API KEY MODAL
+         ========================================================================= */}
+      {isAddKeyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0d1527] border border-cyan-500/30 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {lang === 'bn' ? 'নতুন SmartPOS API কী যুক্ত করুন' : 'Add SmartPOS API Key'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {lang === 'bn' ? 'মাসিক ১,০০০ চেক সম্পন্ন হলে স্বয়ংক্রিয় রোলওভার হবে।' : '1,000 checks/month pool auto-failover.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddKeyModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSmartposKey} className="space-y-4 text-xs">
+              <div>
+                <label className="text-slate-300 block mb-1 font-medium">
+                  {lang === 'bn' ? 'কী নাম বা লেবেল *' : 'Key Label / Identification *'}
+                </label>
+                <input
+                  type="text"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="e.g. SmartPOS Key 3 (Secondary Standby)"
+                  required
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-300 block mb-1 font-medium">
+                  {lang === 'bn' ? 'SmartPOS API কী টোকেন *' : 'SmartPOS API Token / Secret *'}
+                </label>
+                <input
+                  type="text"
+                  value={newKeyApiKey}
+                  onChange={(e) => setNewKeyApiKey(e.target.value)}
+                  placeholder="e.g. fraud_vRSyB8eF02JkL9q1..."
+                  required
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-medium">
+                    {lang === 'bn' ? 'কাস্টম ডোমেইন (ঐচ্ছিক)' : 'Custom API Domain (Optional)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newKeyDomain}
+                    onChange={(e) => setNewKeyDomain(e.target.value)}
+                    placeholder="api.smartpos.com.bd"
+                    className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-300 block mb-1 font-medium">
+                    {lang === 'bn' ? 'মাসিক চেক লিমিট' : 'Monthly Quota Limit'}
+                  </label>
+                  <input
+                    type="number"
+                    min="100"
+                    max="100000"
+                    value={newKeyMonthlyLimit}
+                    onChange={(e) => setNewKeyMonthlyLimit(Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-mono font-bold"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">ডিফল্ট: ১,০০০ চেক / মাস</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-300 flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">
+                  {lang === 'bn'
+                    ? 'এই কী যুক্ত করার সাথে সাথে পুলের মোট ধারণক্ষমতা ১,০০০ বৃদ্ধি পাবে। পূর্ববর্তী কীগুলোর সীমা শেষ হলে এটি ট্রাফিক গ্রহণ করবে।'
+                    : 'Adding this key expands your total pool capacity by 1,000 checks. Standby keys automatically accept traffic when primary exhausts.'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddKeyModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl cursor-pointer transition-colors"
+                >
+                  {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl shadow-md shadow-cyan-500/20 cursor-pointer transition-all"
+                >
+                  {lang === 'bn' ? 'পুলে যুক্ত করুন' : 'Add to Key Pool'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 6: EDIT SMARTPOS KEY SETTINGS & LIMIT MODAL
+         ========================================================================= */}
+      {editingSmartposKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-[#0d1527] border border-cyan-500/30 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {lang === 'bn' ? 'SmartPOS কী সেটিংস পরিবর্তন' : 'Edit Key Settings'}
+                  </h3>
+                  <p className="text-xs text-slate-400">{editingSmartposKey.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingSmartposKey(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSmartposKey} className="space-y-4 text-xs">
+              <div>
+                <label className="text-slate-300 block mb-1 font-medium">
+                  {lang === 'bn' ? 'মাসিক চেক লিমিট (Monthly Quota)' : 'Monthly Check Limit'}
+                </label>
+                <input
+                  type="number"
+                  min="100"
+                  max="100000"
+                  value={editKeyMonthlyLimit}
+                  onChange={(e) => setEditKeyMonthlyLimit(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-300 block mb-1 font-medium">
+                  {lang === 'bn' ? 'কী স্ট্যাটাস (Key Status)' : 'Key Status'}
+                </label>
+                <select
+                  value={editKeyStatus}
+                  onChange={(e) => setEditKeyStatus(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl outline-none focus:border-cyan-400 font-medium"
+                >
+                  <option value="active">Active (সক্রিয় / স্ট্যান্ডবাই)</option>
+                  <option value="exhausted">Exhausted (কোটা সমাপ্ত)</option>
+                  <option value="disabled">Disabled (সাময়িক বন্ধ)</option>
+                </select>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-400 space-y-1">
+                <span className="block font-semibold text-slate-300">বর্তমান ব্যবহার:</span>
+                <span className="font-mono text-cyan-300 block">
+                  {editingSmartposKey.usageCount.toLocaleString()} / {editKeyMonthlyLimit.toLocaleString()} checks used
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingSmartposKey(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl cursor-pointer"
+                >
+                  {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl shadow-md shadow-cyan-500/20 cursor-pointer"
+                >
+                  {lang === 'bn' ? 'সংরক্ষণ করুন' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 7: DELETE SMARTPOS KEY CONFIRMATION
+         ========================================================================= */}
+      {keyToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-[#0d1527] border border-rose-500/30 p-6 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {lang === 'bn' ? 'SmartPOS কী মুছে ফেলতে নিশ্চিত?' : 'Remove Key from Pool?'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {lang === 'bn'
+                    ? `আপনি কি নিশ্চিত যে "${keyToDelete.name}" কী-টি পুল থেকে মুছে ফেলতে চান?`
+                    : `Are you sure you want to delete "${keyToDelete.name}" from your active failover pool?`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setKeyToDelete(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+              >
+                {lang === 'bn' ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSmartposKey}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
+              >
+                {lang === 'bn' ? 'মুছে ফেলুন' : 'Delete Key'}
+              </button>
+            </div>
           </div>
         </div>
       )}
