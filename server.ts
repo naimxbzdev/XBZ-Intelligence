@@ -30,6 +30,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
+// Enable full CORS for external merchants, WooCommerce, Shopify, and cross-origin REST clients
+app.use((req: Request, res: Response, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-KEY, X-Domain, Accept');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // In-memory runtime configuration (can be updated via API or env)
 let activeConfig: CourierConfig = {
   smartposApiKey: process.env.SMARTPOS_FRAUD_API_KEY || 'fraud_vRSyppIMF080gu4VE1TYRDqHsYIPL0Ms',
@@ -65,10 +76,10 @@ function extractApiKey(req: Request): { apiKey?: string; domain?: string } {
 // 1. EXACT SMARTPOS SPEC ENDPOINTS
 // ==========================================
 
-// POST /api/v1/fraud-check
-app.post('/api/v1/fraud-check', async (req: Request, res: Response) => {
+// POST /api/v1/fraud-check and /v1/fraud-check
+app.post(['/api/v1/fraud-check', '/v1/fraud-check'], async (req: Request, res: Response) => {
   try {
-    const { phone } = req.body;
+    const phone = req.body?.phone || req.query?.phone;
     if (!phone || typeof phone !== 'string') {
       return res.status(400).json({
         status: 'error',
@@ -96,10 +107,10 @@ app.post('/api/v1/fraud-check', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/v1/fraud-check/:phone
-app.get('/api/v1/fraud-check/:phone', async (req: Request, res: Response) => {
+// GET /api/v1/fraud-check/:phone, /v1/fraud-check/:phone and GET with query ?phone=...
+app.get(['/api/v1/fraud-check/:phone', '/v1/fraud-check/:phone', '/api/v1/fraud-check', '/v1/fraud-check'], async (req: Request, res: Response) => {
   try {
-    const { phone } = req.params;
+    const phone = req.params?.phone || (req.query?.phone as string);
     if (!phone) {
       return res.status(400).json({
         status: 'error',

@@ -244,20 +244,27 @@ export default function App() {
     try {
       const res = await fetch('/api/couriers/status');
       if (!res.ok) return;
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) return;
       const data = await res.json();
       if (Array.isArray(data.couriers) && data.couriers.length > 0) {
         const sanitized = data.couriers.map((incoming: any) => {
-          const fallback = INITIAL_COURIER_STATUSES.find((d) => d.courier === incoming.courier);
+          const courierKey = incoming?.courier || incoming?.key || incoming?.id;
+          const fallback = INITIAL_COURIER_STATUSES.find((d) => d.courier === courierKey);
+          const computedStatus = incoming?.status || (incoming?.connected ? 'connected' : (fallback?.status || 'connected'));
           return {
             ...fallback,
             ...incoming,
+            courier: courierKey || fallback?.courier,
+            displayName: incoming?.displayName || incoming?.name || fallback?.displayName,
+            status: computedStatus,
             description: incoming?.description && typeof incoming.description === 'object'
               ? { ...fallback?.description, ...incoming.description }
               : (fallback?.description || { bn: '', en: '' }),
           };
         });
         setCourierStatuses(sanitized);
-        setIsSandbox(data.isSandbox !== false);
+        setIsSandbox(data.isSandbox === true);
       }
     } catch {
       // Retain INITIAL_COURIER_STATUSES without crashing

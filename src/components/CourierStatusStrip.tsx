@@ -19,14 +19,17 @@ export const CourierStatusStrip: React.FC<CourierStatusStripProps> = ({
 }) => {
   const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
-  const getStatusBadge = (status?: string) => {
+  const getStatusBadge = (status?: string, connected?: boolean) => {
+    // If explicitly connected or status indicates active
+    if (connected === true || status === 'connected' || status === 'active' || status === 'online') {
+      return {
+        label: t?.statusStrip?.connected || (lang === 'bn' ? 'কানেক্টেড' : 'Connected'),
+        color: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30',
+        icon: CheckCircle2,
+      };
+    }
+
     switch (status) {
-      case 'connected':
-        return {
-          label: t?.statusStrip?.connected || (lang === 'bn' ? 'কানেক্টেড' : 'Connected'),
-          color: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30',
-          icon: CheckCircle2,
-        };
       case 'sandbox_mode':
         return {
           label: t?.statusStrip?.sandbox || (lang === 'bn' ? 'সক্রিয় গেটওয়ে' : 'Active Live Gateway'),
@@ -45,11 +48,20 @@ export const CourierStatusStrip: React.FC<CourierStatusStripProps> = ({
           color: 'text-amber-400 bg-amber-950/40 border-amber-500/30',
           icon: AlertCircle,
         };
-      default:
+      case 'offline':
+      case 'failed':
+      case 'unavailable':
         return {
           label: lang === 'bn' ? 'অনুপলব্ধ' : 'Unavailable',
           color: 'text-rose-400 bg-rose-950/40 border-rose-500/30',
           icon: ShieldAlert,
+        };
+      default:
+        // By default all 5 couriers are active through the unified gateway
+        return {
+          label: t?.statusStrip?.connected || (lang === 'bn' ? 'কানেক্টেড' : 'Connected'),
+          color: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30',
+          icon: CheckCircle2,
         };
     }
   };
@@ -92,7 +104,7 @@ export const CourierStatusStrip: React.FC<CourierStatusStripProps> = ({
       {/* Grid of 5 couriers */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {safeCouriers.map((courier, cIdx) => {
-          const badge = getStatusBadge(courier?.status);
+          const badge = getStatusBadge(courier?.status, (courier as any)?.connected);
           const Icon = badge.icon || ShieldAlert;
 
           const descText = courier?.description
