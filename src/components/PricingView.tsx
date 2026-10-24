@@ -17,7 +17,7 @@ export const PricingView: React.FC<PricingViewProps> = ({
   activePlan = 'free',
   user,
 }) => {
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
   const plans = [
     {

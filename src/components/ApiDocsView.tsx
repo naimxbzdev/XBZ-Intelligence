@@ -11,7 +11,7 @@ export const ApiDocsView: React.FC<ApiDocsViewProps> = ({ lang }) => {
   const [activeLang, setActiveLang] = useState<'curl' | 'php' | 'node' | 'python'>('curl');
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedGet, setCopiedGet] = useState(false);
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
   const codeSnippets = {
     curl: `curl -X POST "https://fraudchecker.smartposbd.com/api/v1/fraud-check" \\

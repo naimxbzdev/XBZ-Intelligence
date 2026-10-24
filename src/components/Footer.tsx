@@ -11,7 +11,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ lang, onNavigate, openTrustBadge }) => {
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
   return (
     <footer className="border-t border-slate-800/80 bg-[#050811] text-slate-400 text-xs mt-16 pb-20 lg:pb-8">

@@ -56,7 +56,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
 }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
   // Operator detection
   const getOperator = (val: string) => {

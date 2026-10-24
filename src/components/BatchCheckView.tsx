@@ -12,7 +12,7 @@ export const BatchCheckView: React.FC<BatchCheckViewProps> = ({ lang }) => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
   const sampleNumbers = `01711223344\n01811223344\n01911223344\n01611223344\n01511223344\n01799887766`;
 

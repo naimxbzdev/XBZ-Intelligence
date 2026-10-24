@@ -49,7 +49,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
   const [deliveryCharge, setDeliveryCharge] = useState<number>(130);
   const [activeTabTool, setActiveTabTool] = useState<'calculator' | 'sms' | null>(null);
 
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
   // Mask phone helper
   const formatPhone = (num: string) => {
@@ -492,7 +492,9 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
                   <span>{t.results.recommendationTitle}</span>
                 </h3>
                 <p className="mt-2 text-sm sm:text-base text-slate-200 leading-relaxed font-medium">
-                  {result.recommendation[lang]}
+                  {typeof result?.recommendation === 'string'
+                    ? result.recommendation
+                    : (result?.recommendation?.[lang] || result?.recommendation?.bn || result?.recommendation?.en || '')}
                 </p>
               </div>
             </div>
@@ -518,7 +520,14 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
             </h3>
 
             <div className="space-y-2.5">
-              {result.riskFactors[lang].map((factor, idx) => (
+              {(Array.isArray(result?.riskFactors?.[lang])
+                ? result.riskFactors[lang]
+                : Array.isArray(result?.riskFactors?.bn)
+                ? result.riskFactors.bn
+                : Array.isArray(result?.riskFactors?.en)
+                ? result.riskFactors.en
+                : []
+              ).map((factor, idx) => (
                 <div 
                   key={idx}
                   className="flex items-start gap-2.5 p-2.5 rounded-lg bg-slate-900/50 border border-slate-800 text-xs text-slate-300"
@@ -624,7 +633,11 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
                 </div>
 
                 <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
-                  <span className="truncate">{courier.statusMessage[lang]}</span>
+                  <span className="truncate">
+                    {typeof courier?.statusMessage === 'string'
+                      ? courier.statusMessage
+                      : (courier?.statusMessage?.[lang] || courier?.statusMessage?.bn || courier?.statusMessage?.en || '')}
+                  </span>
                   {courier.lastActiveDate && (
                     <span className="text-[10px] font-mono text-slate-500 shrink-0">
                       {courier.lastActiveDate.slice(5)}

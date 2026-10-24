@@ -16,7 +16,7 @@ export const CommunityDatabaseView: React.FC<CommunityDatabaseViewProps> = ({
   const [reports, setReports] = useState<FraudReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
 
   const fetchReports = async () => {
     setLoading(true);

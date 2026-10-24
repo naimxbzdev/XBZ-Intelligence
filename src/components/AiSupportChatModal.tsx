@@ -357,7 +357,7 @@ export const AiSupportChatModal: React.FC<AiSupportChatModalProps> = ({
             <span>{lang === 'bn' ? 'দ্রুত প্রশ্ন করার পরামর্শ:' : 'Suggested topics:'}</span>
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            {(lang === 'bn' ? QUICK_PROMPTS.bn : QUICK_PROMPTS.en).map((chip, idx) => (
+            {(QUICK_PROMPTS?.[lang] || QUICK_PROMPTS?.bn || QUICK_PROMPTS?.en || []).map((chip, idx) => (
               <button
                 key={idx}
                 type="button"

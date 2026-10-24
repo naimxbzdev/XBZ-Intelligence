@@ -57,7 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   toggleTheme,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const t = translations[lang];
+  const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
   const isPaid = userPlan === 'pro' || userPlan === 'enterprise';
 
   // Strictly gate admin link to naimxbz@gmail.com and xbz.dev@gmail.com
