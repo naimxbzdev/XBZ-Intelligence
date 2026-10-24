@@ -100,7 +100,7 @@ export const translations = {
       colDate: 'তারিখ',
     },
     apiDocs: {
-      title: 'ফ্রি কুরিয়ার ফ্রড স্ক্রিনিং REST API',
+      title: 'কুরিয়ার ফ্রড স্ক্রিনিং REST API ও ইন্টিগ্রেশন',
       subtitle: 'বাংলাদেশের অনলাইন মার্চেন্টদের জন্য ইনস্ট্যান্ট ক্যাশ-অন-ডেলিভারি (সিওডি) ঝুঁকি যাচাই ইঞ্জিন। Steadfast, Pathao, RedX, CarryBee ও Paperfly একীভূত পার্সেল হিস্ট্রি।',
       endpoint: 'এন্ডপয়েন্ট',
       headers: 'রিকোয়েস্ট হেডার্স',
@@ -226,7 +226,7 @@ export const translations = {
       colDate: 'Reported On',
     },
     apiDocs: {
-      title: 'Free Courier Fraud Screening REST API',
+      title: 'Courier Fraud Screening REST API & Integrations',
       subtitle: 'Instant Cash on Delivery risk engine for Bangladeshi merchants. Query delivery records across Steadfast, Pathao, RedX, CarryBee, and Paperfly with sub-20ms cached engine.',
       endpoint: 'Endpoint',
       headers: 'Request Headers',

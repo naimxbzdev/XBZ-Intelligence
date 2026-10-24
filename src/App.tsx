@@ -18,6 +18,7 @@ import { PlanGatePaywall } from './components/PlanGatePaywall.tsx';
 import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { LiveSupportButton } from './components/LiveSupportButton.tsx';
 import { Footer } from './components/Footer.tsx';
+import { SmartPosHomeContent } from './components/SmartPosHomeContent.tsx';
 import type { Language } from './utils/translations.ts';
 import type { PhoneAnalysisResult, CourierStatusInfo, PlanTier, RecentSearchItem } from './types/intelligence.ts';
 import { safeApiFetch } from './utils/apiClient.ts';
@@ -183,14 +184,14 @@ export default function App() {
   };
 
 
-  // Theme state: 'dark' (Deep Dark) | 'light' (Light Theme)
+  // Theme state: 'light' (SmartPOS BD Clean Light) | 'dark' (Deep Dark)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
       const savedTheme = localStorage.getItem('xbz_theme');
       if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
-      return 'dark'; // Deep Dark default
+      return 'light'; // SmartPOS BD clean light default
     } catch {
-      return 'dark';
+      return 'light';
     }
   });
 
@@ -345,8 +346,8 @@ export default function App() {
         if (nextCount === 3) {
           showToast(
             lang === 'bn' 
-              ? 'এটি আপনার ৩টি ফ্রি গেস্ট সার্চের শেষটি! আনলিমিটেড ১০০টি ফ্রি চেক পেতে অ্যাকাউন্ট তৈরি করুন।' 
-              : 'This was your last free guest check! Create a free account to unlock 100 free checks per month.',
+              ? 'এটি আপনার ৩টি গেস্ট ফ্রি সার্চের শেষটি! প্রতি মাসে ১০০টি ফ্রি চেক পেতে অ্যাকাউন্ট তৈরি করুন।' 
+              : 'This was your last free guest check! Create an account to get 100 free checks per month.',
             'info'
           );
         }
@@ -459,7 +460,7 @@ export default function App() {
   const isPaidUser = userPlan === 'pro' || userPlan === 'enterprise';
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans relative overflow-x-hidden transition-colors duration-200">
+    <div className="min-h-screen bg-[#eef2f6] dark:bg-[#070b14] text-slate-900 dark:text-slate-100 flex flex-col font-sans relative overflow-x-hidden transition-colors duration-200">
       {/* Toast Notification (Top Right to avoid floating WhatsApp button) */}
       {toastMessage && (
         <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-md p-4 rounded-2xl bg-gradient-to-r from-[#0d1e38] to-[#070b14] border border-cyan-500/40 shadow-2xl text-xs flex items-start gap-3 backdrop-blur-md animate-fade-in">
@@ -501,6 +502,7 @@ export default function App() {
         isGuestLimitReached={isGuestLimitReached}
         theme={theme}
         toggleTheme={toggleTheme}
+        onSelectTheme={(t) => setTheme(t)}
       />
 
       {/* Contained Live Fraud Ticker Wrapper with strict viewport boundary */}
@@ -538,6 +540,7 @@ export default function App() {
               recentSearches={recentSearches}
               onClearRecentSearches={handleClearRecentSearches}
               onRemoveRecentSearch={handleRemoveRecentSearch}
+              lastResultRiskLevel={searchResult?.riskLevel}
             />
 
             {/* Error banner if search fails */}
@@ -562,12 +565,22 @@ export default function App() {
             )}
 
             {/* 5 Courier Status Strip */}
-            <div className="border-t border-slate-800/80 mt-6">
+            <div className="border-t border-slate-200 dark:border-slate-800/80 mt-6">
               <CourierStatusStrip
                 courierStatuses={courierStatuses}
                 lang={lang}
                 onOpenSettings={() => setIsApiSettingsOpen(true)}
                 onViewSpecs={() => setCurrentTab('couriers')}
+              />
+            </div>
+
+            {/* SmartPOS BD Homepage Complete Sections: How It Works, Why Choose, FAQ, and Merchant CTA */}
+            <div className="border-t border-slate-200 dark:border-slate-800/80">
+              <SmartPosHomeContent
+                lang={lang}
+                onOpenAuth={(mode) => handleOpenAuth(mode, true)}
+                onOpenUpgrade={() => handleOpenPaymentModal('pro')}
+                onNavigate={(tab) => setCurrentTab(tab)}
               />
             </div>
           </>

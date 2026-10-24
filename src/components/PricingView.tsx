@@ -88,26 +88,26 @@ export const PricingView: React.FC<PricingViewProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <div className="text-center max-w-3xl mx-auto">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           {t.pricing.title}
         </h2>
-        <p className="text-sm sm:text-base text-slate-300/80 mt-2">
+        <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 mt-2 font-medium">
           {t.pricing.subtitle}
         </p>
 
         {/* bKash, Nagad, Rocket acceptance banner with exact user numbers */}
-        <div className="mt-5 p-3 rounded-2xl bg-slate-900/90 border border-slate-700/80 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-300 shadow-xl">
-          <span className="font-bold text-white flex items-center gap-1.5">
-            <Smartphone className="w-4 h-4 text-cyan-400" />
+        <div className="mt-5 p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-700 dark:text-slate-300 shadow-sm dark:shadow-xl">
+          <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <Smartphone className="w-4 h-4 text-emerald-600 dark:text-cyan-400" />
             <span>{lang === 'bn' ? 'সেন্ড মানি পেমেন্ট নম্বর:' : 'Payment Numbers:'}</span>
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-pink-950/60 border border-pink-500/30 text-pink-300 font-mono font-bold">
+          <span className="px-2.5 py-1 rounded-lg bg-pink-50 border border-pink-200 text-pink-700 dark:bg-pink-950/60 dark:border-pink-500/30 dark:text-pink-300 font-mono font-bold">
             🌸 বিকাশ: 01703223141
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-orange-950/60 border border-orange-500/30 text-orange-300 font-mono font-bold">
+          <span className="px-2.5 py-1 rounded-lg bg-orange-50 border border-orange-200 text-orange-700 dark:bg-orange-950/60 dark:border-orange-500/30 dark:text-orange-300 font-mono font-bold">
             🟠 নগদ: 01703223141
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-500/30 text-purple-300 font-mono font-bold">
+          <span className="px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 dark:bg-purple-950/60 dark:border-purple-500/30 dark:text-purple-300 font-mono font-bold">
             🟣 রকেট: 017032231418
           </span>
         </div>
@@ -117,37 +117,39 @@ export const PricingView: React.FC<PricingViewProps> = ({
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className={`p-6 rounded-2xl border transition-all flex flex-col justify-between relative ${plan.accentColor}`}
+            className={`p-6 rounded-2xl border transition-all flex flex-col justify-between relative bg-white dark:bg-[#0d1527] border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md ${
+              plan.popular ? 'border-emerald-500 dark:border-cyan-400 ring-2 ring-emerald-500/30 dark:ring-cyan-500/40' : ''
+            }`}
           >
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-[11px] font-extrabold uppercase tracking-wider shadow-md">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-emerald-600 dark:bg-cyan-400 text-white dark:text-slate-950 text-[11px] font-extrabold uppercase tracking-wider shadow-md">
                 {t.pricing.popular}
               </div>
             )}
 
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.name}</h3>
                 <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-semibold ${
-                  plan.isFree ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' : 'bg-cyan-950 text-cyan-300 border border-cyan-500/30'
+                  plan.isFree ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-500/30' : 'bg-sky-50 text-sky-800 border border-sky-200 dark:bg-cyan-950 dark:text-cyan-300 dark:border-cyan-500/30'
                 }`}>
                   {plan.badge}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1 min-h-[32px]">{plan.desc}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 min-h-[32px] font-medium">{plan.desc}</p>
 
               <div className="my-5 flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-cyan-400">{t.pricing.bdt}</span>
-                <span className="text-4xl font-extrabold font-mono text-white tracking-tight">
+                <span className="text-2xl font-bold text-emerald-600 dark:text-cyan-400">{t.pricing.bdt}</span>
+                <span className="text-4xl font-extrabold font-mono text-slate-900 dark:text-white tracking-tight">
                   {lang === 'bn' ? plan.price : plan.priceEn}
                 </span>
-                <span className="text-xs text-slate-400">{plan.period}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{plan.period}</span>
               </div>
 
-              <div className="space-y-3 border-t border-slate-800/80 pt-4">
+              <div className="space-y-3 border-t border-slate-100 dark:border-slate-800/80 pt-4">
                 {plan.features.map((feat, i) => (
-                  <div key={i} className="flex items-start gap-2.5 text-xs text-slate-300">
-                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plan.isFree ? 'text-emerald-400' : 'text-cyan-400'}`} />
+                  <div key={i} className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plan.isFree ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-cyan-400'}`} />
                     <span>{feat}</span>
                   </div>
                 ))}
@@ -156,12 +158,12 @@ export const PricingView: React.FC<PricingViewProps> = ({
 
             <button
               onClick={() => onSelectPlan(plan.id)}
-              className={`mt-8 w-full py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`mt-8 w-full py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 plan.isFree
-                  ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-300 dark:border-emerald-500/40'
                   : plan.popular
-                    ? 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 shadow-lg shadow-cyan-500/25 active:scale-98'
-                    : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-gradient-to-r dark:from-cyan-400 dark:to-blue-500 dark:hover:from-cyan-300 dark:hover:to-blue-400 dark:text-slate-950 shadow-md active:scale-98'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white border border-transparent dark:border-slate-700'
               }`}
             >
               {plan.isFree && (user ? <Gift className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />)}

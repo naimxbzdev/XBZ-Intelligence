@@ -93,11 +93,11 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       <div className="flex flex-col justify-center leading-none">
         <div className="flex items-center gap-1.5">
           <span
-            className={`${current.text} tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent font-display drop-shadow-[0_2px_8px_rgba(34,211,238,0.25)]`}
+            className={`${current.text} tracking-tight text-slate-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-white dark:via-cyan-100 dark:to-cyan-400 font-display transition-colors`}
           >
             XBZ
           </span>
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-cyan-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] dark:shadow-[0_0_8px_#22d3ee]" />
         </div>
 
         {showTagline && (

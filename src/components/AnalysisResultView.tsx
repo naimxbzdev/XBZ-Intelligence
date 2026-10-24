@@ -77,7 +77,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
       case 'low':
         return {
           label: t.results.riskLevels.low,
-          bg: 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300',
+          bg: 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300',
           gaugeColor: '#10b981',
           icon: ShieldCheck,
           accent: 'emerald',
@@ -86,7 +86,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
       case 'medium':
         return {
           label: t.results.riskLevels.medium,
-          bg: 'bg-amber-950/40 border-amber-500/30 text-amber-300',
+          bg: 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-500/30 dark:text-amber-300',
           gaugeColor: '#f59e0b',
           icon: AlertTriangle,
           accent: 'amber',
@@ -95,7 +95,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
       case 'high':
         return {
           label: t.results.riskLevels.high,
-          bg: 'bg-rose-950/40 border-rose-500/30 text-rose-300',
+          bg: 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-300',
           gaugeColor: '#f43f5e',
           icon: AlertOctagon,
           accent: 'rose',
@@ -104,7 +104,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
       case 'blacklisted':
         return {
           label: t.results.riskLevels.blacklisted,
-          bg: 'bg-red-950/60 border-red-500/50 text-red-200',
+          bg: 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/60 dark:border-red-500/50 dark:text-red-200',
           gaugeColor: '#ef4444',
           icon: FileWarning,
           accent: 'red',
@@ -113,7 +113,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
       default:
         return {
           label: t.results.riskLevels.new_customer,
-          bg: 'bg-cyan-950/40 border-cyan-500/30 text-cyan-300',
+          bg: 'bg-sky-50 border-sky-200 text-sky-800 dark:bg-cyan-950/40 dark:border-cyan-500/30 dark:text-cyan-300',
           gaugeColor: '#06b6d4',
           icon: UserPlus,
           accent: 'cyan',

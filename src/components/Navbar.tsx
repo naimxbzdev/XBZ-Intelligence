@@ -40,6 +40,7 @@ interface NavbarProps {
   isGuestLimitReached?: boolean;
   theme?: 'dark' | 'light';
   toggleTheme?: () => void;
+  onSelectTheme?: (theme: 'dark' | 'light') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -53,8 +54,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   openTrustBadge,
   user,
   userPlan,
-  theme = 'dark',
+  theme = 'light',
   toggleTheme,
+  onSelectTheme,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = (translations && translations[lang]) ? translations[lang] : (translations?.bn || translations?.en);
@@ -76,20 +78,28 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* =========================================================================
           NATIVE ANDROID STYLE TOP APP BAR (Compact 56px, high tactile density)
          ========================================================================= */}
-      <header className="sticky top-0 z-40 w-full border-b border-cyan-500/15 bg-[#070b14]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-cyan-500/15 bg-white/95 dark:bg-[#070b14]/95 backdrop-blur-md shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-6">
-          {/* Brand Emblem Logo (Clean emblem image without text) */}
+          {/* Brand Emblem Logo with SmartPOS Style Lockup */}
           <button
             type="button"
             onClick={() => handleNavClick('search')}
-            className="cursor-pointer shrink-0 select-none text-left focus:outline-none flex items-center py-1"
-            aria-label="XBZ Home"
+            className="cursor-pointer shrink-0 select-none text-left focus:outline-none flex items-center gap-2.5 py-1"
+            aria-label="Home"
           >
             <img
               src="/logo_transparent.png"
-              alt="XBZ XI Emblem"
-              className="h-8 sm:h-9 w-auto object-contain drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] transition-transform duration-300 hover:scale-105"
+              alt="Logo"
+              className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 hover:scale-105"
             />
+            <div className="hidden sm:flex flex-col leading-none">
+              <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                {lang === 'bn' ? 'কুরিয়ার ফ্রড চেকার' : 'Courier Fraud Checker'}
+              </span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide">
+                Smart Delivery Screening
+              </span>
+            </div>
           </button>
 
           {/* Desktop Navigation Links (Single line, whitespace-nowrap) */}
@@ -99,8 +109,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('search')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 currentTab === 'search'
-                  ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold dark:text-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/40'
               }`}
             >
               <Search className="w-4 h-4" />
@@ -112,13 +122,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('batch')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 currentTab === 'batch'
-                  ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold dark:text-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/40'
               }`}
             >
               <Layers className="w-4 h-4" />
               <span>{t.nav.batch}</span>
-              {!isPaid && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
+              {!isPaid && <Lock className="w-3 h-3 text-amber-500 ml-0.5" />}
             </button>
 
             {/* Community Database */}
@@ -126,13 +136,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('community')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 currentTab === 'community'
-                  ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold dark:text-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/40'
               }`}
             >
               <Database className="w-4 h-4" />
               <span>{t.nav.community}</span>
-              {!isPaid && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
+              {!isPaid && <Lock className="w-3 h-3 text-amber-500 ml-0.5" />}
             </button>
 
             {/* Courier Status */}
@@ -140,13 +150,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('couriers')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 currentTab === 'couriers'
-                  ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold dark:text-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/40'
               }`}
             >
               <Activity className="w-4 h-4" />
               <span>{t.nav.couriers}</span>
-              {!isPaid && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
+              {!isPaid && <Lock className="w-3 h-3 text-amber-500 ml-0.5" />}
             </button>
 
             {/* API Docs */}
@@ -154,13 +164,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('apiDocs')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 currentTab === 'apiDocs'
-                  ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold dark:text-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/40'
               }`}
             >
               <Code2 className="w-4 h-4" />
               <span>{t.nav.apiDocs}</span>
-              {!isPaid && <Lock className="w-3 h-3 text-amber-400/80 ml-0.5" />}
+              {!isPaid && <Lock className="w-3 h-3 text-amber-500 ml-0.5" />}
             </button>
 
             {/* Pricing */}
@@ -168,8 +178,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('pricing')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                 currentTab === 'pricing'
-                  ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold dark:text-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/40'
               }`}
             >
               <Tag className="w-4 h-4" />
@@ -182,14 +192,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => handleNavClick('admin')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap shrink-0 ${
                   currentTab === 'admin'
-                    ? 'text-cyan-400 bg-cyan-950/60 border border-cyan-400/50 font-bold shadow-sm shadow-cyan-950'
-                    : 'text-cyan-300 hover:text-white bg-cyan-950/30 hover:bg-cyan-900/40 border border-cyan-500/30'
+                    ? 'text-cyan-700 bg-cyan-50 border border-cyan-300 font-bold dark:text-cyan-400 dark:bg-cyan-950/60 dark:border-cyan-400/50'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-cyan-300 dark:hover:text-white dark:bg-cyan-950/30 dark:border dark:border-cyan-500/30'
                 }`}
                 title="Authorized Admin Console"
               >
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-cyan-400" />
                 <span>{t.nav.admin || 'Admin Panel'}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-cyan-400" />
               </button>
             )}
           </nav>
@@ -199,15 +209,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Active Plan Badge or Upgrade Button */}
             {user ? (
               isPaid ? (
-                <div className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-cyan-300 bg-cyan-950/50 border border-cyan-500/40 rounded-lg">
-                  <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <div className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg dark:text-cyan-300 dark:bg-cyan-950/50 dark:border-cyan-500/40">
+                  <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-cyan-400 shrink-0" />
                   <span className="capitalize hidden sm:inline">{userPlan} Plan</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={openPayment}
-                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 rounded-lg shadow-sm shadow-amber-500/20 transition-all whitespace-nowrap active:scale-95 cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-xs transition-all whitespace-nowrap active:scale-95 cursor-pointer"
                   >
                     <Zap className="w-3.5 h-3.5 fill-current" />
                     <span>{lang === 'bn' ? 'আপগ্রেড' : 'Upgrade'}</span>
@@ -217,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={openPayment}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 rounded-lg shadow-sm shadow-amber-500/20 transition-all whitespace-nowrap active:scale-95 cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-xs transition-all whitespace-nowrap active:scale-95 cursor-pointer"
               >
                 <Zap className="w-3.5 h-3.5 fill-current" />
                 <span className="hidden sm:inline">{lang === 'bn' ? 'প্ল্যান কিনুন' : 'Buy Plan'}</span>
@@ -228,48 +238,66 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Language Switcher */}
             <button
               onClick={() => setLang(lang === 'bn' ? 'en' : 'bn')}
-              className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 rounded-lg transition-colors whitespace-nowrap cursor-pointer active:scale-95"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 dark:text-slate-300 dark:hover:text-white dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:border-slate-700/60 rounded-lg transition-colors whitespace-nowrap cursor-pointer active:scale-95"
               title="Switch Language"
             >
-              <Globe className="w-3.5 h-3.5 text-cyan-400" />
+              <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-cyan-400" />
               <span>{lang === 'bn' ? 'EN' : 'বাংলা'}</span>
             </button>
 
-            {/* Theme Toggle (Deep Dark / Light) */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95"
-              title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Deep Dark Theme'}
-              aria-label="Toggle color theme"
-            >
-              {theme === 'dark' ? (
-                <>
-                  <Moon className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400/20" />
-                  <span className="hidden sm:inline text-[11px] font-medium">Dark</span>
-                </>
-              ) : (
-                <>
-                  <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-                  <span className="hidden sm:inline text-[11px] font-medium text-slate-700">Light</span>
-                </>
-              )}
-            </button>
+            {/* Segmented Theme Switcher (Showing both Sun & Moon clearly) */}
+            <div className="flex items-center p-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 select-none">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onSelectTheme) onSelectTheme('light');
+                  else if (theme === 'dark' && toggleTheme) toggleTheme();
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+                title="লাইট মোড সক্রিয় করুন (Switch to Light Mode)"
+                aria-pressed={theme === 'light'}
+              >
+                <Sun className={`w-3.5 h-3.5 ${theme === 'light' ? 'text-amber-500 fill-amber-500/30' : 'text-slate-400'}`} />
+                <span className="hidden sm:inline text-[11px]">Light</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onSelectTheme) onSelectTheme('dark');
+                  else if (theme === 'light' && toggleTheme) toggleTheme();
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-[#0f172a] text-cyan-400 shadow-xs border border-cyan-500/30'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="ডার্ক মোড সক্রিয় করুন (Switch to Dark Mode)"
+                aria-pressed={theme === 'dark'}
+              >
+                <Moon className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-cyan-400 fill-cyan-400/30' : 'text-slate-500'}`} />
+                <span className="hidden sm:inline text-[11px]">Dark</span>
+              </button>
+            </div>
 
             {/* Merchant API Settings button (Desktop) */}
             <button
               onClick={openApiSettings}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:text-white bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 dark:text-slate-200 dark:hover:text-white dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:border-slate-700/60 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
               title="Configure API Keys"
             >
-              <Key className="w-3.5 h-3.5 text-cyan-400" />
+              <Key className="w-3.5 h-3.5 text-emerald-600 dark:text-cyan-400" />
               <span className="hidden md:inline">{t.nav.apiSettings}</span>
             </button>
 
             {/* Auth / Profile Button */}
             <button
               onClick={openAuth}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-lg shadow-sm shadow-cyan-500/20 transition-all whitespace-nowrap active:scale-95 cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-all whitespace-nowrap active:scale-95 cursor-pointer"
             >
               <User className="w-3.5 h-3.5" />
               <span className="max-w-[75px] sm:max-w-[100px] truncate">{user ? user.name : t.nav.login}</span>
@@ -334,24 +362,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>{t.nav.apiSettings}</span>
               </button>
 
-              <button
-                onClick={() => {
-                  if (toggleTheme) toggleTheme();
-                }}
-                className="col-span-2 flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-300 hover:text-white"
-              >
-                <div className="flex items-center gap-2">
-                  {theme === 'dark' ? (
-                    <Moon className="w-4 h-4 text-cyan-400" />
-                  ) : (
-                    <Sun className="w-4 h-4 text-amber-500" />
-                  )}
-                  <span>{theme === 'dark' ? (lang === 'bn' ? 'ডিপ ডার্ক থিম' : 'Deep Dark Theme') : (lang === 'bn' ? 'লাইট থিম' : 'Light Theme')}</span>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 uppercase">
-                  {theme}
-                </span>
-              </button>
+              <div className="col-span-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSelectTheme) onSelectTheme('light');
+                    else if (theme === 'dark' && toggleTheme) toggleTheme();
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    theme === 'light'
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{lang === 'bn' ? 'লাইট থিম' : 'Light Theme'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSelectTheme) onSelectTheme('dark');
+                    else if (theme === 'light' && toggleTheme) toggleTheme();
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-[#0f172a] text-cyan-400 shadow-xs border border-cyan-500/40'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                  }`}
+                >
+                  <Moon className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{lang === 'bn' ? 'ডার্ক থিম' : 'Dark Theme'}</span>
+                </button>
+              </div>
 
               <button
                 type="button"

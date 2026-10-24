@@ -481,24 +481,24 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
     <div className="w-full max-w-full overflow-hidden select-none sticky top-14 sm:static z-30 pt-1.5 sm:pt-2.5 pb-1">
       <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         <div 
-          className="relative w-full max-w-full bg-[#080d1a]/95 border border-rose-500/30 rounded-full sm:rounded-2xl py-1.5 sm:py-2 px-2.5 sm:px-3.5 overflow-hidden shadow-lg shadow-rose-950/30 backdrop-blur-xl"
+          className="relative w-full max-w-full bg-white dark:bg-[#080d1a]/95 border border-rose-200 dark:border-rose-500/30 rounded-full sm:rounded-2xl py-1.5 sm:py-2 px-2.5 sm:px-3.5 overflow-hidden shadow-sm dark:shadow-lg dark:shadow-rose-950/30 backdrop-blur-xl"
           style={{ '--ticker-duration': `${durationSec}s`, contain: 'paint' } as React.CSSProperties}
         >
           <div className="flex items-center w-full max-w-full overflow-hidden">
             {/* Pinned Left Label: On mobile rendered as a compact floating security chip */}
-            <div className="flex relative z-20 items-center gap-1 sm:gap-2 pr-2 sm:pr-3 bg-gradient-to-r from-[#080d1a] via-[#080d1a] to-transparent shrink-0">
+            <div className="flex relative z-20 items-center gap-1 sm:gap-2 pr-2 sm:pr-3 bg-gradient-to-r from-white via-white to-transparent dark:from-[#080d1a] dark:via-[#080d1a] dark:to-transparent shrink-0">
               <span className="flex h-2 w-2 sm:h-2.5 sm:w-2.5 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-rose-500"></span>
               </span>
-              <span className="flex px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full sm:rounded-lg bg-rose-950/90 border border-rose-500/40 text-rose-300 font-bold text-[9px] sm:text-[11px] uppercase tracking-wider items-center gap-1 sm:gap-1.5 shadow-sm whitespace-nowrap">
-                <ShieldAlert className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400 shrink-0" />
+              <span className="flex px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full sm:rounded-lg bg-rose-50 border border-rose-200 text-rose-700 dark:bg-rose-950/90 dark:border-rose-500/40 dark:text-rose-300 font-bold text-[9px] sm:text-[11px] uppercase tracking-wider items-center gap-1 sm:gap-1.5 shadow-xs whitespace-nowrap">
+                <ShieldAlert className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
                 <span className="hidden sm:inline">{lang === 'bn' ? 'লাইভ ফ্রড ট্র্যাকার' : 'LIVE FRAUD TICKER'}</span>
                 <span className="sm:hidden">{lang === 'bn' ? 'লাইভ অ্যালার্ট' : 'LIVE'}</span>
               </span>
 
               {/* Unique Count Badge */}
-              <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-slate-400 bg-slate-900 border border-slate-800 whitespace-nowrap">
+              <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-slate-600 bg-slate-100 border border-slate-200 dark:text-slate-400 dark:bg-slate-900 dark:border-slate-800 whitespace-nowrap">
                 <span>{tickerItems.length}টি রিপোর্ট</span>
               </span>
             </div>
@@ -506,8 +506,8 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
             {/* Continuous Horizontal Marquee strictly constrained by parent width */}
             <div className="flex-1 w-full max-w-full overflow-hidden relative" style={{ contain: 'paint' }}>
               {/* Subtle edge fade gradients */}
-              <div className="absolute left-0 top-0 bottom-0 w-4 sm:w-8 bg-gradient-to-r from-[#080d1a] to-transparent z-10 pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-12 bg-gradient-to-l from-[#080d1a] to-transparent z-10 pointer-events-none" />
+              <div className="absolute left-0 top-0 bottom-0 w-4 sm:w-8 bg-gradient-to-r from-white to-transparent dark:from-[#080d1a] dark:to-transparent z-10 pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-12 bg-gradient-to-l from-white to-transparent dark:from-[#080d1a] dark:to-transparent z-10 pointer-events-none" />
 
               {/* Marquee Track with CSS var duration */}
               <div 
@@ -518,43 +518,43 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
               <div
                 key={item.id}
                 onClick={onViewDatabase}
-                className="inline-flex items-center gap-2.5 px-3 py-1 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/40 transition-colors shrink-0 group text-xs text-slate-300"
+                className="inline-flex items-center gap-2.5 px-3 py-1 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-850 dark:border-slate-800 dark:text-slate-300 hover:border-rose-300 dark:hover:border-rose-500/40 transition-colors shrink-0 group text-xs"
               >
                 {/* Masked phone badge */}
-                <span className="font-mono font-bold text-white bg-slate-950 px-2 py-0.5 rounded border border-slate-700/80 group-hover:border-rose-500/40 group-hover:text-rose-300 transition-colors">
+                <span className="font-mono font-bold text-slate-900 bg-white dark:text-white dark:bg-slate-950 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700/80 group-hover:border-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300 transition-colors">
                   {item.phone}
                 </span>
 
                 {/* Location */}
-                <span className="flex items-center gap-1 text-slate-400 font-medium whitespace-nowrap">
-                  <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
+                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                  <MapPin className="w-3 h-3 text-emerald-600 dark:text-cyan-400 shrink-0" />
                   <span>{item.location}</span>
                 </span>
 
                 {/* Store */}
-                <span className="hidden sm:inline-flex items-center gap-1 text-slate-400 whitespace-nowrap">
-                  <Store className="w-3 h-3 text-amber-400 shrink-0" />
-                  <span className="text-slate-300 font-medium">{item.store}</span>
+                <span className="hidden sm:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  <Store className="w-3 h-3 text-amber-500 dark:text-amber-400 shrink-0" />
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">{item.store}</span>
                 </span>
 
                 {/* Reason */}
-                <span className="text-rose-200 font-medium truncate max-w-[280px] sm:max-w-[360px]">
+                <span className="text-rose-700 dark:text-rose-200 font-medium truncate max-w-[280px] sm:max-w-[360px]">
                   &ldquo;{item.reason}&rdquo;
                 </span>
 
                 {/* Loss Amount */}
-                <span className="font-mono font-bold text-rose-400 shrink-0 bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-900/40 whitespace-nowrap">
+                <span className="font-mono font-bold text-rose-700 bg-rose-50 border border-rose-200 dark:text-rose-400 dark:bg-rose-950/40 dark:border-rose-900/40 shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap">
                   ৳{item.lossBDT} ক্ষতি
                 </span>
 
                 {/* Time */}
-                <span className="text-[10px] text-slate-500 font-mono hidden md:inline-flex items-center gap-0.5 whitespace-nowrap">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono hidden md:inline-flex items-center gap-0.5 whitespace-nowrap">
                   <Clock className="w-2.5 h-2.5" />
                   <span>{lang === 'bn' ? item.timeAgoBn : item.timeAgoEn}</span>
                 </span>
 
                 {/* Separator dot */}
-                <span className="text-slate-600 pl-1 font-bold">•</span>
+                <span className="text-slate-400 dark:text-slate-600 pl-1 font-bold">•</span>
               </div>
             ))}
 
@@ -563,43 +563,43 @@ export const LiveFraudTicker: React.FC<LiveFraudTickerProps> = ({
               <div
                 key={`dup_${item.id}`}
                 onClick={onViewDatabase}
-                className="inline-flex items-center gap-2.5 px-3 py-1 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/40 transition-colors shrink-0 group text-xs text-slate-300"
+                className="inline-flex items-center gap-2.5 px-3 py-1 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-850 dark:border-slate-800 dark:text-slate-300 hover:border-rose-300 dark:hover:border-rose-500/40 transition-colors shrink-0 group text-xs"
               >
                 {/* Masked phone badge */}
-                <span className="font-mono font-bold text-white bg-slate-950 px-2 py-0.5 rounded border border-slate-700/80 group-hover:border-rose-500/40 group-hover:text-rose-300 transition-colors">
+                <span className="font-mono font-bold text-slate-900 bg-white dark:text-white dark:bg-slate-950 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700/80 group-hover:border-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300 transition-colors">
                   {item.phone}
                 </span>
 
                 {/* Location */}
-                <span className="flex items-center gap-1 text-slate-400 font-medium whitespace-nowrap">
-                  <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
+                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+                  <MapPin className="w-3 h-3 text-emerald-600 dark:text-cyan-400 shrink-0" />
                   <span>{item.location}</span>
                 </span>
 
                 {/* Store */}
-                <span className="hidden sm:inline-flex items-center gap-1 text-slate-400 whitespace-nowrap">
-                  <Store className="w-3 h-3 text-amber-400 shrink-0" />
-                  <span className="text-slate-300 font-medium">{item.store}</span>
+                <span className="hidden sm:inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                  <Store className="w-3 h-3 text-amber-500 dark:text-amber-400 shrink-0" />
+                  <span className="text-slate-800 dark:text-slate-300 font-medium">{item.store}</span>
                 </span>
 
                 {/* Reason */}
-                <span className="text-rose-200 font-medium truncate max-w-[280px] sm:max-w-[360px]">
+                <span className="text-rose-700 dark:text-rose-200 font-medium truncate max-w-[280px] sm:max-w-[360px]">
                   &ldquo;{item.reason}&rdquo;
                 </span>
 
                 {/* Loss Amount */}
-                <span className="font-mono font-bold text-rose-400 shrink-0 bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-900/40 whitespace-nowrap">
+                <span className="font-mono font-bold text-rose-700 bg-rose-50 border border-rose-200 dark:text-rose-400 dark:bg-rose-950/40 dark:border-rose-900/40 shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap">
                   ৳{item.lossBDT} ক্ষতি
                 </span>
 
                 {/* Time */}
-                <span className="text-[10px] text-slate-500 font-mono hidden md:inline-flex items-center gap-0.5 whitespace-nowrap">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono hidden md:inline-flex items-center gap-0.5 whitespace-nowrap">
                   <Clock className="w-2.5 h-2.5" />
                   <span>{lang === 'bn' ? item.timeAgoBn : item.timeAgoEn}</span>
                 </span>
 
                 {/* Separator dot */}
-                <span className="text-slate-600 pl-1 font-bold">•</span>
+                <span className="text-slate-400 dark:text-slate-600 pl-1 font-bold">•</span>
               </div>
             ))}
           </div>
