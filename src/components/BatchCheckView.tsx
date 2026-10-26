@@ -3,11 +3,14 @@ import { Layers, Download, Loader2, Play, CheckCircle2, AlertTriangle, AlertOcta
 import type { Language } from '../utils/translations.ts';
 import { translations } from '../utils/translations.ts';
 
+import { getDeviceFingerprint } from '../utils/deviceFingerprint.ts';
+
 interface BatchCheckViewProps {
   lang: Language;
+  user?: any;
 }
 
-export const BatchCheckView: React.FC<BatchCheckViewProps> = ({ lang }) => {
+const BatchCheckViewComponent: React.FC<BatchCheckViewProps> = ({ lang, user }) => {
   const [inputNumbers, setInputNumbers] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
@@ -35,10 +38,24 @@ export const BatchCheckView: React.FC<BatchCheckViewProps> = ({ lang }) => {
     setError(null);
 
     try {
+      const deviceId = getDeviceFingerprint();
+      const currentUserEmail = user?.email || (() => {
+        try {
+          const saved = localStorage.getItem('xbz_user');
+          return saved ? JSON.parse(saved)?.email : undefined;
+        } catch {
+          return undefined;
+        }
+      })();
+
       const res = await fetch('/api/batch-check', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phones: rawList }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Id': deviceId,
+          ...(currentUserEmail ? { 'X-User-Email': currentUserEmail } : {}),
+        },
+        body: JSON.stringify({ phones: rawList, deviceId }),
       });
 
       const data = await res.json();
@@ -214,3 +231,6 @@ export const BatchCheckView: React.FC<BatchCheckViewProps> = ({ lang }) => {
     </div>
   );
 };
+
+export const BatchCheckView = React.memo(BatchCheckViewComponent);
+

@@ -8,9 +8,12 @@ import { reportsDb } from './src/server/reportsDb.ts';
 import { paymentDb } from './src/server/paymentDb.ts';
 import { analyzePhoneNumber, normalizeBDPhone } from './src/server/analysisEngine.ts';
 import { SmartposClient } from './src/server/smartposClient.ts';
-import { userDb } from './src/server/userDb.ts';
+import { userDb, type UserRecord } from './src/server/userDb.ts';
 import { pricingDb } from './src/server/pricingDb.ts';
 import { smartposKeyManager } from './src/server/smartposKeyManager.ts';
+import { deviceLimitsDb } from './src/server/deviceLimitsDb.ts';
+import { auditLogDb } from './src/server/auditLogDb.ts';
+import { apiQuotaDb } from './src/server/apiQuotaDb.ts';
 import type { CourierConfig } from './src/types/intelligence.ts';
 
 dotenv.config();
@@ -72,6 +75,40 @@ function extractApiKey(req: Request): { apiKey?: string; domain?: string } {
   };
 }
 
+// Client IP & Hardware Device Identifier Extraction
+function extractClientIp(req: Request): string {
+  const forwarded = req.header('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket.remoteAddress || req.ip || '127.0.0.1';
+}
+
+function extractDeviceId(req: Request): string {
+  const id = req.header('x-device-id') || req.body?.deviceId || (req.query?.deviceId as string);
+  return id && typeof id === 'string' && id.trim() ? id.trim() : 'dev_unknown';
+}
+
+function extractUserFromReq(req: Request): UserRecord | undefined {
+  try {
+    const authHeader = req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer jwt_')) {
+      const b64 = authHeader.substring(11);
+      const decoded = JSON.parse(Buffer.from(b64, 'base64').toString('utf-8'));
+      if (decoded && decoded.email) {
+        return userDb.findByEmail(decoded.email);
+      }
+    }
+    const emailHeader = req.header('X-User-Email') || req.body?.userEmail || (req.query?.userEmail as string);
+    if (emailHeader) {
+      return userDb.findByEmail(String(emailHeader).trim());
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
 // ==========================================
 // 1. EXACT SMARTPOS SPEC ENDPOINTS
 // ==========================================
@@ -96,6 +133,32 @@ app.post(['/api/v1/fraud-check', '/v1/fraud-check'], async (req: Request, res: R
     }
 
     const { apiKey, domain } = extractApiKey(req);
+
+    // Enforce Enterprise and Merchant Daily & Monthly Quota Tracking
+    if (apiKey) {
+      const quota = apiQuotaDb.recordApiRequest(apiKey, 1);
+      res.setHeader('X-RateLimit-Limit-Daily', quota.dailyLimit);
+      res.setHeader('X-RateLimit-Remaining-Daily', Math.max(0, quota.dailyLimit - quota.dailyUsed));
+      res.setHeader('X-RateLimit-Limit-Monthly', quota.monthlyLimit);
+      res.setHeader('X-RateLimit-Remaining-Monthly', Math.max(0, quota.monthlyLimit - quota.monthlyUsed));
+
+      if (quota.approachingDaily || quota.approachingMonthly) {
+        res.setHeader('X-RateLimit-Warning', 'Approaching 90% quota limit threshold');
+      }
+
+      if (!quota.allowed) {
+        return res.status(429).json({
+          status: 'error',
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'API রিকোয়েস্ট সীমা অতিক্রম করেছে। দৈনিক বা মাসিক কোটা বৃদ্ধির জন্য যোগাযোগ করুন।',
+          dailyUsed: quota.dailyUsed,
+          dailyLimit: quota.dailyLimit,
+          monthlyUsed: quota.monthlyUsed,
+          monthlyLimit: quota.monthlyLimit,
+        });
+      }
+    }
+
     const result = await SmartposClient.checkPhone(normalized, apiKey, domain);
 
     return res.status(200).json(result);
@@ -127,6 +190,31 @@ app.get(['/api/v1/fraud-check/:phone', '/v1/fraud-check/:phone', '/api/v1/fraud-
     }
 
     const { apiKey, domain } = extractApiKey(req);
+
+    if (apiKey) {
+      const quota = apiQuotaDb.recordApiRequest(apiKey, 1);
+      res.setHeader('X-RateLimit-Limit-Daily', quota.dailyLimit);
+      res.setHeader('X-RateLimit-Remaining-Daily', Math.max(0, quota.dailyLimit - quota.dailyUsed));
+      res.setHeader('X-RateLimit-Limit-Monthly', quota.monthlyLimit);
+      res.setHeader('X-RateLimit-Remaining-Monthly', Math.max(0, quota.monthlyLimit - quota.monthlyUsed));
+
+      if (quota.approachingDaily || quota.approachingMonthly) {
+        res.setHeader('X-RateLimit-Warning', 'Approaching 90% quota limit threshold');
+      }
+
+      if (!quota.allowed) {
+        return res.status(429).json({
+          status: 'error',
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'API রিকোয়েস্ট সীমা অতিক্রম করেছে। দৈনিক বা মাসিক কোটা বৃদ্ধির জন্য যোগাযোগ করুন।',
+          dailyUsed: quota.dailyUsed,
+          dailyLimit: quota.dailyLimit,
+          monthlyUsed: quota.monthlyUsed,
+          monthlyLimit: quota.monthlyLimit,
+        });
+      }
+    }
+
     const result = await SmartposClient.checkPhone(normalized, apiKey, domain);
 
     return res.status(200).json(result);
@@ -142,12 +230,29 @@ app.get(['/api/v1/fraud-check/:phone', '/v1/fraud-check/:phone', '/api/v1/fraud-
 // 2. INTERNAL APPLICATION ENDPOINTS
 // ==========================================
 
-// POST /api/check-phone (Used by React UI)
+// POST /api/check-phone (Used by React UI - Strictly protected by IP & Device Limits)
 app.post('/api/check-phone', async (req: Request, res: Response) => {
   try {
     const { phone, config } = req.body;
     if (!phone || typeof phone !== 'string') {
       return res.status(400).json({ error: 'ফোন নম্বর প্রদান করা আবশ্যক।' });
+    }
+
+    const deviceId = extractDeviceId(req);
+    const clientIp = extractClientIp(req);
+    const user = extractUserFromReq(req);
+
+    // Anti-cheat verification across device & IP
+    const quota = deviceLimitsDb.checkQuota(deviceId, clientIp, user?.planId, user?.role, user?.status);
+    if (!quota.allowed) {
+      return res.status(403).json({
+        error: 'DEVICE_LIMIT_EXCEEDED',
+        message: quota.reason,
+        limit: quota.limit,
+        used: quota.used,
+        remaining: 0,
+        requiresApproval: true,
+      });
     }
 
     const mergedConfig: CourierConfig = {
@@ -156,15 +261,33 @@ app.post('/api/check-phone', async (req: Request, res: Response) => {
     };
 
     const result = await analyzePhoneNumber(phone.trim(), mergedConfig);
+
+    // Record usage for device and IP
+    deviceLimitsDb.recordUsage(deviceId, clientIp, user?.email, user?.planId);
+    if (user) {
+      userDb.deductCheck(user.id);
+    }
+
     return res.json(result);
   } catch (error: any) {
     return res.status(400).json({ error: error.message || 'যাচাইকরণে সমস্যা হয়েছে।' });
   }
 });
 
-// POST /api/batch-check (Bulk checking for up to 30 numbers)
+// POST /api/batch-check (Bulk checking for up to 30 numbers - Strictly Locked to Approved Pro/Enterprise)
 app.post('/api/batch-check', async (req: Request, res: Response) => {
   try {
+    const user = extractUserFromReq(req);
+    const isPaidOrAdmin = user && (user.role === 'admin' || (user.status === 'approved' && (user.planId === 'pro' || user.planId === 'enterprise')));
+
+    if (!isPaidOrAdmin) {
+      return res.status(403).json({
+        error: 'PREMIUM_LOCKED',
+        message: 'বাল্ক চেক (Batch Check) শুধুমাত্র পেইড প্রো অথবা এন্টারপ্রাইজ মার্চেন্টদের জন্য সংরক্ষিত। অনুগ্রহ করে প্যাকেজ নিয়ে অ্যাডমিনের অনুমোদনের জন্য অপেক্ষা করুন।',
+        requiresApproval: true,
+      });
+    }
+
     const { phones, config } = req.body;
     if (!Array.isArray(phones) || phones.length === 0) {
       return res.status(400).json({ error: 'একাধিক ফোন নম্বরের তালিকা দিন।' });
@@ -362,7 +485,8 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
 // Admin User Management Endpoints
 app.get('/api/admin/users', (req: Request, res: Response) => {
   const adminEmail = req.query.adminEmail as string;
-  if (!adminEmail || !['naimxbz@gmail.com', 'xbz.dev@gmail.com'].includes(adminEmail.trim().toLowerCase())) {
+  const validAdmins = ['naimxbz@gmail.com', 'xbz.dev@gmail.com', 'naeem@webxpress.com.bd'];
+  if (!adminEmail || !validAdmins.includes(adminEmail.trim().toLowerCase())) {
     return res.status(403).json({ error: 'এডমিন এক্সেস সংরক্ষিত।' });
   }
   return res.json(userDb.getAllUsers(false));
@@ -425,27 +549,47 @@ app.get('/api/admin/packages', (req: Request, res: Response) => {
 
 app.post('/api/admin/packages/:id/approve', (req: Request, res: Response) => {
   const { id } = req.params;
-  const { customLimitGranted } = req.body || {};
+  const { customLimitGranted, adminEmail } = req.body || {};
   const payment = paymentDb.getPaymentById(id);
   if (!payment) return res.status(404).json({ error: 'Package request not found' });
 
+  const actingAdmin = adminEmail || req.header('X-Admin-Email') || 'naeem@webxpress.com.bd';
+
   const updatedPayment = paymentDb.updatePaymentStatus(id, 'verified', {
     customLimitGranted: typeof customLimitGranted === 'number' ? customLimitGranted : undefined,
+    approvedBy: actingAdmin,
+    approvedAt: new Date().toISOString(),
   });
 
   let updatedUser = null;
+  const grantedQuota = typeof customLimitGranted === 'number' && !isNaN(customLimitGranted)
+    ? customLimitGranted
+    : (payment.planId === 'enterprise' ? 99999 : 2500);
+
   if (payment.userEmail) {
     const user = userDb.findByEmail(payment.userEmail);
     if (user) {
       const planId = payment.planId || 'pro';
       const planName = payment.planName || (planId === 'enterprise' ? 'Enterprise Unlimited' : 'Merchant Pro (2,500 checks)');
-      const checksLimit = typeof customLimitGranted === 'number' && !isNaN(customLimitGranted)
-        ? customLimitGranted
-        : (planId === 'enterprise' ? 99999 : 2500);
-
-      updatedUser = userDb.updatePlanAndLimits(user.id, planId, planName, checksLimit);
+      updatedUser = userDb.updatePlanAndLimits(user.id, planId, planName, grantedQuota);
     }
   }
+
+  // Also approve and unblock the user's hardware device
+  if (payment.deviceId) {
+    deviceLimitsDb.approveDevice(payment.deviceId);
+  }
+
+  // Audit Log Entry
+  auditLogDb.addLog({
+    adminEmail: actingAdmin,
+    action: 'payment_approved',
+    actionLabel: 'পেমেন্ট অনুমোদন ও প্ল্যান আপগ্রেড',
+    targetId: id,
+    targetEmail: payment.userEmail,
+    details: `Approved ${payment.planName} (৳${payment.amountBDT}) with TrxID: ${payment.transactionId} for ${payment.userEmail || 'merchant'}. Checks granted: ${grantedQuota}. Device unlocked.`,
+    ip: extractClientIp(req),
+  });
 
   return res.json({
     success: true,
@@ -457,11 +601,26 @@ app.post('/api/admin/packages/:id/approve', (req: Request, res: Response) => {
 
 app.post('/api/admin/packages/:id/reject', (req: Request, res: Response) => {
   const { id } = req.params;
-  const { rejectionReason } = req.body || {};
+  const { rejectionReason, adminEmail } = req.body || {};
+  const actingAdmin = adminEmail || req.header('X-Admin-Email') || 'naeem@webxpress.com.bd';
+
   const updatedPayment = paymentDb.updatePaymentStatus(id, 'rejected', {
     rejectionReason: rejectionReason || 'এডমিন কর্তৃক পেমেন্ট ভেরিফিকেশন বাতিল করা হয়েছে।',
+    rejectedBy: actingAdmin,
+    rejectedAt: new Date().toISOString(),
   });
   if (!updatedPayment) return res.status(404).json({ error: 'Package request not found' });
+
+  // Audit Log Entry
+  auditLogDb.addLog({
+    adminEmail: actingAdmin,
+    action: 'payment_rejected',
+    actionLabel: 'পেমেন্ট বাতিল / প্রত্যাখ্যান',
+    targetId: id,
+    targetEmail: updatedPayment.userEmail,
+    details: `Rejected payment request (TrxID: ${updatedPayment.transactionId}, Method: ${updatedPayment.paymentMethod}). Reason: ${rejectionReason || 'এডমিন কর্তৃক পেমেন্ট ভেরিফিকেশন বাতিল করা হয়েছে।'}`,
+    ip: extractClientIp(req),
+  });
 
   return res.json({
     success: true,
@@ -475,6 +634,55 @@ app.delete('/api/admin/packages/:id', (req: Request, res: Response) => {
   const deleted = paymentDb.deletePayment(id);
   if (!deleted) return res.status(404).json({ error: 'Package request not found' });
   return res.json({ success: true, message: 'প্যাকেজ রিকোয়েস্ট সফলভাবে মুছে ফেলা হয়েছে।' });
+});
+
+// Admin Device & IP Anti-Cheat Inspector Endpoints
+app.get('/api/admin/devices', (req: Request, res: Response) => {
+  return res.json({
+    devices: deviceLimitsDb.getAllDevices(),
+    ips: deviceLimitsDb.getAllIps(),
+  });
+});
+
+app.post('/api/admin/devices/:id/approve', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const ok = deviceLimitsDb.approveDevice(id);
+  if (!ok) return res.status(404).json({ error: 'Device not found' });
+
+  const actingAdmin = req.body?.adminEmail || req.header('X-Admin-Email') || 'naimxbz@gmail.com';
+  auditLogDb.addLog({
+    adminEmail: actingAdmin,
+    action: 'device_approved',
+    actionLabel: 'ডিভাইস আনলক ও অনুমোদন',
+    targetId: id,
+    details: `Whitelisted hardware device ID ${id} and reset guest searches to 0.`,
+    ip: extractClientIp(req),
+  });
+
+  return res.json({ success: true, message: 'ডিভাইসটি সফলভাবে অনুমোদন ও আনলক করা হয়েছে।' });
+});
+
+app.post('/api/admin/devices/:id/reset', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const ok = deviceLimitsDb.resetDeviceLimits(id);
+  if (!ok) return res.status(404).json({ error: 'Device not found' });
+
+  const actingAdmin = req.body?.adminEmail || req.header('X-Admin-Email') || 'naimxbz@gmail.com';
+  auditLogDb.addLog({
+    adminEmail: actingAdmin,
+    action: 'device_reset',
+    actionLabel: 'ডিভাইস লিমিট কাউন্টার রিসেট',
+    targetId: id,
+    details: `Reset search limits counter for device ID ${id}.`,
+    ip: extractClientIp(req),
+  });
+
+  return res.json({ success: true, message: 'ডিভাইসের সার্চ লিমিট রিসেট করা হয়েছে।' });
+});
+
+// Admin Audit Log Endpoint
+app.get('/api/admin/audit-logs', (req: Request, res: Response) => {
+  return res.json(auditLogDb.getAllLogs());
 });
 
 // Admin Pricing Settings Endpoints
@@ -585,6 +793,9 @@ app.post('/api/payment/submit', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'সঠিক ট্রানজেকশন আইডি (TrxID) প্রদান করুন।' });
     }
 
+    const deviceId = extractDeviceId(req);
+    const clientIp = extractClientIp(req);
+
     const amountBDT = planId === 'enterprise' ? 1499 : 499;
     const planName = planId === 'enterprise' ? 'Enterprise Unlimited' : 'Merchant Pro (2,500 checks)';
 
@@ -596,6 +807,8 @@ app.post('/api/payment/submit', (req: Request, res: Response) => {
       senderNumber: normalized,
       transactionId: transactionId.trim().toUpperCase(),
       userEmail: userEmail || 'merchant@example.com',
+      deviceId,
+      ip: clientIp,
       status: 'pending', // Submissions enter pending review for admin approval
     });
 
@@ -613,6 +826,191 @@ app.post('/api/payment/submit', (req: Request, res: Response) => {
 
 app.get('/api/payment/history', (req: Request, res: Response) => {
   return res.json(paymentDb.getAllPayments());
+});
+
+// Real-Time Payment Approval & Upgrade Polling Endpoint
+app.get('/api/payment/my-status', (req: Request, res: Response) => {
+  const userEmail = (req.query.email as string) || req.header('X-User-Email');
+  const deviceId = extractDeviceId(req);
+
+  const allPayments = paymentDb.getAllPayments();
+  const latest = allPayments.find(p => 
+    (userEmail && p.userEmail?.toLowerCase() === userEmail.toLowerCase()) ||
+    (deviceId && p.deviceId === deviceId)
+  );
+
+  let currentUser = userEmail ? userDb.findByEmail(userEmail) : undefined;
+  if (!currentUser && latest?.userEmail) {
+    currentUser = userDb.findByEmail(latest.userEmail);
+  }
+
+  const isApproved = currentUser ? (currentUser.planId === 'pro' || currentUser.planId === 'enterprise') : (latest?.status === 'verified');
+
+  return res.json({
+    hasPending: latest?.status === 'pending',
+    isApproved,
+    latestPayment: latest || null,
+    user: currentUser ? {
+      id: currentUser.id,
+      name: currentUser.name,
+      email: currentUser.email,
+      storeName: currentUser.storeName,
+      plan: currentUser.plan,
+      planId: currentUser.planId,
+      status: currentUser.status,
+      checksRemaining: currentUser.checksRemaining,
+      apiKey: currentUser.apiKey,
+    } : null,
+  });
+});
+
+// ==========================================
+// 7.5. ENTERPRISE USAGE QUOTA & API MONITORING
+// ==========================================
+app.get('/api/user/usage-quota', (req: Request, res: Response) => {
+  try {
+    const reqUser = extractUserFromReq(req);
+    const emailParam = (req.query.email as string) || req.header('X-User-Email');
+    const targetEmail = (emailParam || reqUser?.email || 'naeem@webxpress.com.bd').trim().toLowerCase();
+    const targetUser = userDb.findByEmail(targetEmail) || reqUser;
+
+    const planId = (targetUser?.planId as 'free' | 'pro' | 'enterprise') || 'enterprise';
+    const apiKey = targetUser?.apiKey || req.header('X-API-KEY');
+
+    const record = apiQuotaDb.getOrCreate(targetEmail, planId, apiKey);
+
+    const dailyRemaining = Math.max(0, record.dailyLimit - record.dailyUsed);
+    const monthlyRemaining = Math.max(0, record.monthlyLimit - record.monthlyUsed);
+    const dailyPercentage = Number(((record.dailyUsed / record.dailyLimit) * 100).toFixed(1));
+    const monthlyPercentage = Number(((record.monthlyUsed / record.monthlyLimit) * 100).toFixed(1));
+    const threshold = record.warningThreshold || 90;
+
+    const isApproachingDaily = dailyPercentage >= threshold;
+    const isApproachingMonthly = monthlyPercentage >= threshold;
+    const isExceeded = dailyPercentage >= 100 || monthlyPercentage >= 100;
+
+    const status: 'normal' | 'warning' | 'exceeded' = isExceeded
+      ? 'exceeded'
+      : isApproachingDaily || isApproachingMonthly
+      ? 'warning'
+      : 'normal';
+
+    return res.json({
+      ...record,
+      dailyRemaining,
+      monthlyRemaining,
+      dailyPercentage,
+      monthlyPercentage,
+      isApproachingDaily,
+      isApproachingMonthly,
+      isExceeded,
+      status,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch usage quota' });
+  }
+});
+
+app.post('/api/user/usage-quota/simulate', (req: Request, res: Response) => {
+  try {
+    const { percent, email } = req.body || {};
+    const reqUser = extractUserFromReq(req);
+    const targetEmail = (email || req.header('X-User-Email') || reqUser?.email || 'naeem@webxpress.com.bd').trim().toLowerCase();
+    const targetPercent = typeof percent === 'number' ? percent : 92.4;
+
+    const updated = apiQuotaDb.simulateUsage(targetEmail, targetPercent);
+    if (!updated) return res.status(404).json({ error: 'User quota not found' });
+
+    const dailyRemaining = Math.max(0, updated.dailyLimit - updated.dailyUsed);
+    const monthlyRemaining = Math.max(0, updated.monthlyLimit - updated.monthlyUsed);
+    const dailyPercentage = Number(((updated.dailyUsed / updated.dailyLimit) * 100).toFixed(1));
+    const monthlyPercentage = Number(((updated.monthlyUsed / updated.monthlyLimit) * 100).toFixed(1));
+    const threshold = updated.warningThreshold || 90;
+
+    return res.json({
+      success: true,
+      quota: {
+        ...updated,
+        dailyRemaining,
+        monthlyRemaining,
+        dailyPercentage,
+        monthlyPercentage,
+        isApproachingDaily: dailyPercentage >= threshold,
+        isApproachingMonthly: monthlyPercentage >= threshold,
+        isExceeded: dailyPercentage >= 100 || monthlyPercentage >= 100,
+        status: dailyPercentage >= 100 ? 'exceeded' : dailyPercentage >= threshold ? 'warning' : 'normal',
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Simulation failed' });
+  }
+});
+
+app.post('/api/user/usage-quota/reset', (req: Request, res: Response) => {
+  try {
+    const { email } = req.body || {};
+    const reqUser = extractUserFromReq(req);
+    const targetEmail = (email || req.header('X-User-Email') || reqUser?.email || 'naeem@webxpress.com.bd').trim().toLowerCase();
+
+    const updated = apiQuotaDb.resetUsage(targetEmail);
+    if (!updated) return res.status(404).json({ error: 'User quota not found' });
+
+    const dailyRemaining = Math.max(0, updated.dailyLimit - updated.dailyUsed);
+    const monthlyRemaining = Math.max(0, updated.monthlyLimit - updated.monthlyUsed);
+    const dailyPercentage = Number(((updated.dailyUsed / updated.dailyLimit) * 100).toFixed(1));
+    const monthlyPercentage = Number(((updated.monthlyUsed / updated.monthlyLimit) * 100).toFixed(1));
+
+    return res.json({
+      success: true,
+      quota: {
+        ...updated,
+        dailyRemaining,
+        monthlyRemaining,
+        dailyPercentage,
+        monthlyPercentage,
+        isApproachingDaily: false,
+        isApproachingMonthly: false,
+        isExceeded: false,
+        status: 'normal',
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Reset failed' });
+  }
+});
+
+app.post('/api/user/usage-quota/settings', (req: Request, res: Response) => {
+  try {
+    const { email, warningThreshold, webhookUrl, notifyEmail, dailyLimit, monthlyLimit } = req.body || {};
+    const reqUser = extractUserFromReq(req);
+    const targetEmail = (email || req.header('X-User-Email') || reqUser?.email || 'naeem@webxpress.com.bd').trim().toLowerCase();
+
+    const updated = apiQuotaDb.updateSettings(targetEmail, {
+      warningThreshold,
+      webhookUrl,
+      notifyEmail,
+      dailyLimit,
+      monthlyLimit,
+    });
+    if (!updated) return res.status(404).json({ error: 'User quota not found' });
+
+    return res.json({ success: true, quota: updated });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to update quota settings' });
+  }
+});
+
+app.post('/api/user/usage-quota/acknowledge', (req: Request, res: Response) => {
+  try {
+    const { notificationId, email } = req.body || {};
+    const reqUser = extractUserFromReq(req);
+    const targetEmail = (email || req.header('X-User-Email') || reqUser?.email || 'naeem@webxpress.com.bd').trim().toLowerCase();
+
+    const ok = apiQuotaDb.acknowledgeNotification(targetEmail, notificationId);
+    return res.json({ success: ok });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to acknowledge notification' });
+  }
 });
 
 // ==========================================

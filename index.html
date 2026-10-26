@@ -124,12 +124,90 @@
     <link rel="icon" type="image/png" href="/logo_transparent.png" />
     <link rel="apple-touch-icon" href="/logo_transparent.png" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+    
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('xbz_theme');
+          if (t === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
+    <style>
+      /* Fast CSS-only preloader before React loads */
+      .xbz-instant-skeleton {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: #eef2f6;
+        color: #0f172a;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .dark .xbz-instant-skeleton {
+        background: #070b14;
+        color: #f8fafc;
+      }
+      .xbz-pulse {
+        animation: xbzPulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      @keyframes xbzPulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.65; transform: scale(0.98); }
+      }
+      .xbz-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid rgba(14, 165, 233, 0.18);
+        border-top-color: #0284c7;
+        border-radius: 50%;
+        animation: xbzSpin 0.7s linear infinite;
+      }
+      .dark .xbz-spinner {
+        border-color: rgba(6, 182, 212, 0.2);
+        border-top-color: #06b6d4;
+      }
+      @keyframes xbzSpin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
-  <body class="bg-[#070b14] text-slate-100 min-h-screen antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
-    <div id="root"></div>
+  <body class="min-h-screen antialiased bg-[#eef2f6] dark:bg-[#070b14] text-slate-900 dark:text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div id="root">
+      <!-- Instant preloader skeleton: Replaced cleanly when React mounts -->
+      <div class="xbz-instant-skeleton">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; max-width: 420px; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #2563eb); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div style="text-align: left;">
+              <div style="font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em;">XBZ Intelligence</div>
+              <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Courier Fraud Checker BD</div>
+            </div>
+          </div>
+          <div class="xbz-spinner" style="margin-top: 1rem;"></div>
+          <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
+            লোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

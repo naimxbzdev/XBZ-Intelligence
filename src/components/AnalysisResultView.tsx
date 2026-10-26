@@ -36,7 +36,7 @@ interface AnalysisResultViewProps {
   onOpenApiSettings: () => void;
 }
 
-export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
+const AnalysisResultViewComponent: React.FC<AnalysisResultViewProps> = ({
   result,
   lang,
   onOpenReportModal,
@@ -728,3 +728,6 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
     </div>
   );
 };
+
+export const AnalysisResultView = React.memo(AnalysisResultViewComponent);
+

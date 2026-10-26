@@ -78,10 +78,14 @@ export interface PaymentSubmission {
   senderNumber: string;
   transactionId: string;
   userEmail?: string;
+  deviceId?: string;
+  ip?: string;
   status: 'verified' | 'pending' | 'rejected';
   rejectionReason?: string;
   approvedAt?: string;
+  approvedBy?: string;
   rejectedAt?: string;
+  rejectedBy?: string;
   customLimitGranted?: number;
   submittedAt: string;
 }
@@ -185,6 +189,44 @@ export interface SmartposKeyConfig {
   lastUsedAt?: string;
   lastError?: string;
   createdAt: string;
+}
+
+export interface QuotaNotification {
+  id: string;
+  type: 'warning_90_daily' | 'warning_90_monthly' | 'exceeded_daily' | 'exceeded_monthly' | 'info';
+  title: string;
+  message: string;
+  percentage: number;
+  timestamp: string;
+  acknowledged: boolean;
+}
+
+export interface UsageQuotaInfo {
+  userId: string;
+  userEmail: string;
+  apiKey: string;
+  planId: 'free' | 'pro' | 'enterprise';
+  tierName: string;
+  dailyLimit: number;
+  dailyUsed: number;
+  monthlyLimit: number;
+  monthlyUsed: number;
+  lastResetDaily: string;
+  lastResetMonthly: string;
+  warningThreshold: number;
+  webhookUrl?: string;
+  notifyEmail?: string;
+  notifications: QuotaNotification[];
+  hourlyTraffic: Array<{ hour: string; requests: number }>;
+  dailyTraffic: Array<{ date: string; requests: number }>;
+  dailyRemaining: number;
+  monthlyRemaining: number;
+  dailyPercentage: number;
+  monthlyPercentage: number;
+  isApproachingDaily: boolean;
+  isApproachingMonthly: boolean;
+  isExceeded: boolean;
+  status: 'normal' | 'warning' | 'exceeded';
 }
 
 

@@ -13,6 +13,8 @@ const INITIAL_PAYMENTS: PaymentSubmission[] = [
     transactionId: '9K8J7H6G5F',
     userEmail: 'merchant@example.com',
     status: 'verified',
+    approvedAt: '2026-03-22T10:30:00Z',
+    approvedBy: 'naeem@webxpress.com.bd',
     submittedAt: '2026-03-22T10:15:00Z',
   },
   {
@@ -25,6 +27,8 @@ const INITIAL_PAYMENTS: PaymentSubmission[] = [
     transactionId: 'NGD8271948',
     userEmail: 'store@dhakafashion.com',
     status: 'verified',
+    approvedAt: '2026-03-23T15:20:00Z',
+    approvedBy: 'naimxbz@gmail.com',
     submittedAt: '2026-03-23T14:40:00Z',
   }
 ];
@@ -85,19 +89,32 @@ class PaymentDatabase {
   public updatePaymentStatus(
     id: string,
     status: 'verified' | 'pending' | 'rejected',
-    meta?: { rejectionReason?: string; customLimitGranted?: number }
+    meta?: {
+      rejectionReason?: string;
+      customLimitGranted?: number;
+      approvedBy?: string;
+      approvedAt?: string;
+      rejectedBy?: string;
+      rejectedAt?: string;
+    }
   ): PaymentSubmission | null {
     const payment = this.payments.find((p) => p.id === id);
     if (!payment) return null;
 
     payment.status = status;
     if (status === 'verified') {
-      payment.approvedAt = new Date().toISOString();
+      payment.approvedAt = meta?.approvedAt || new Date().toISOString();
+      if (meta?.approvedBy) {
+        payment.approvedBy = meta.approvedBy;
+      }
       if (meta?.customLimitGranted !== undefined) {
         payment.customLimitGranted = meta.customLimitGranted;
       }
     } else if (status === 'rejected') {
-      payment.rejectedAt = new Date().toISOString();
+      payment.rejectedAt = meta?.rejectedAt || new Date().toISOString();
+      if (meta?.rejectedBy) {
+        payment.rejectedBy = meta.rejectedBy;
+      }
       if (meta?.rejectionReason) {
         payment.rejectionReason = meta.rejectionReason;
       }

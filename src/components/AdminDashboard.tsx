@@ -54,8 +54,12 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
+  Smartphone,
+  History,
+  Download,
 } from 'lucide-react';
 import type { PaymentSubmission, SmartposKeyConfig } from '../types/intelligence.ts';
+import { DashboardStatistics } from './DashboardStatistics.tsx';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -441,8 +445,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [adminLoginLoading, setAdminLoginLoading] = useState(false);
   const [adminLoginError, setAdminLoginError] = useState<string | null>(null);
 
-  // Active Admin View Tab: 'users' | 'packages' | 'smartpos' | 'analytics' | 'pricing'
-  const [adminTab, setAdminTab] = useState<'users' | 'packages' | 'smartpos' | 'analytics' | 'pricing'>('users');
+  // Active Admin View Tab: 'users' | 'packages' | 'history' | 'devices' | 'audit' | 'smartpos' | 'analytics' | 'pricing'
+  const [adminTab, setAdminTab] = useState<'users' | 'packages' | 'history' | 'devices' | 'audit' | 'smartpos' | 'analytics' | 'pricing'>('users');
+
+  // Payment History Search & Filter State
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | 'verified' | 'rejected' | 'pending'>('all');
+  const [historyMethodFilter, setHistoryMethodFilter] = useState<'all' | 'bkash' | 'nagad' | 'rocket'>('all');
+  const [historySortOrder, setHistorySortOrder] = useState<'newest' | 'oldest' | 'highest_amount'>('newest');
+
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
+
+  // Device & IP Anti-Cheat State
+  const [devicesList, setDevicesList] = useState<any[]>([]);
+  const [ipsList, setIpsList] = useState<any[]>([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+
+  // Fetch Audit Logs from backend
+  const fetchAuditLogs = async () => {
+    setIsLoadingAuditLogs(true);
+    try {
+      const res = await fetch('/api/admin/audit-logs');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setAuditLogs(data);
+      }
+    } catch {} finally {
+      setIsLoadingAuditLogs(false);
+    }
+  };
+
+  // Fetch Devices and IPs from backend
+  const fetchDevices = async () => {
+    setIsLoadingDevices(true);
+    try {
+      const res = await fetch(`/api/admin/devices?adminEmail=${encodeURIComponent(currentUserEmail || 'naeem@webxpress.com.bd')}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.devices) setDevicesList(data.devices);
+        if (data.ips) setIpsList(data.ips);
+      }
+    } catch {} finally {
+      setIsLoadingDevices(false);
+    }
+  };
+
+  useEffect(() => {
+    if (adminTab === 'audit') fetchAuditLogs();
+    if (adminTab === 'devices') fetchDevices();
+  }, [adminTab]);
 
   // SmartPOS Multi-API Key Pool state
   const [smartposKeys, setSmartposKeys] = useState<SmartposKeyConfig[]>(() => {
@@ -921,9 +974,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const grantedLimit = Number(approvalCustomLimit) || (packageToApprove.planId === 'enterprise' ? 99999 : 2500);
     const nowIso = new Date().toISOString();
 
+    const actingAdminEmail = currentUserEmail || 'naeem@webxpress.com.bd';
+
     const updatedPayments = payments.map((p) =>
       p.id === packageToApprove.id
-        ? { ...p, status: 'verified' as const, approvedAt: nowIso, customLimitGranted: grantedLimit }
+        ? {
+            ...p,
+            status: 'verified' as const,
+            approvedAt: nowIso,
+            approvedBy: actingAdminEmail,
+            customLimitGranted: grantedLimit,
+          }
         : p
     );
     savePayments(updatedPayments);
@@ -950,7 +1011,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await fetch(`/api/admin/packages/${packageToApprove.id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customLimitGranted: grantedLimit }),
+        body: JSON.stringify({
+          customLimitGranted: grantedLimit,
+          adminEmail: actingAdminEmail,
+        }),
       });
     } catch {}
 
@@ -975,10 +1039,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     const reason = rejectionReasonInput.trim() || 'পেমেন্ট ভেরিফিকেশন ব্যর্থ হয়েছে / ভুল TrxID।';
     const nowIso = new Date().toISOString();
+    const actingAdminEmail = currentUserEmail || 'naeem@webxpress.com.bd';
 
     const updatedPayments = payments.map((p) =>
       p.id === packageToReject.id
-        ? { ...p, status: 'rejected' as const, rejectedAt: nowIso, rejectionReason: reason }
+        ? {
+            ...p,
+            status: 'rejected' as const,
+            rejectedAt: nowIso,
+            rejectedBy: actingAdminEmail,
+            rejectionReason: reason,
+          }
         : p
     );
     savePayments(updatedPayments);
@@ -987,7 +1058,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await fetch(`/api/admin/packages/${packageToReject.id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rejectionReason: reason }),
+        body: JSON.stringify({
+          rejectionReason: reason,
+          adminEmail: actingAdminEmail,
+        }),
       });
     } catch {}
 
@@ -1045,6 +1119,101 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const pendingPackagesCount = useMemo(() => {
     return payments.filter((p) => p.status === 'pending').length;
   }, [payments]);
+
+  // Payment History Records Calculation (Searchable across TrxID, sender phone, merchant email, admin username, method)
+  const paymentHistoryRecords = useMemo(() => {
+    return payments
+      .filter((p) => {
+        if (historyStatusFilter !== 'all' && p.status !== historyStatusFilter) return false;
+        if (historyMethodFilter !== 'all' && p.paymentMethod !== historyMethodFilter) return false;
+        if (historySearchQuery.trim()) {
+          const q = historySearchQuery.toLowerCase().trim();
+          const matchesTrx = p.transactionId?.toLowerCase().includes(q);
+          const matchesSender = p.senderNumber?.includes(q);
+          const matchesEmail = p.userEmail?.toLowerCase().includes(q);
+          const matchesAdmin = Boolean(
+            (p.approvedBy && p.approvedBy.toLowerCase().includes(q)) ||
+            (p.rejectedBy && p.rejectedBy.toLowerCase().includes(q))
+          );
+          const matchesPlan = p.planName?.toLowerCase().includes(q);
+          const matchesMethod = p.paymentMethod?.toLowerCase().includes(q);
+          return Boolean(matchesTrx || matchesSender || matchesEmail || matchesAdmin || matchesPlan || matchesMethod);
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (historySortOrder === 'oldest') {
+          return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+        }
+        if (historySortOrder === 'highest_amount') {
+          return (b.amountBDT || 0) - (a.amountBDT || 0);
+        }
+        return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+      });
+  }, [payments, historyStatusFilter, historyMethodFilter, historySearchQuery, historySortOrder]);
+
+  const historyMetrics = useMemo(() => {
+    const verified = payments.filter((p) => p.status === 'verified');
+    const totalApprovedRevenue = verified.reduce((sum, p) => sum + (p.amountBDT || 0), 0);
+    const rejectedCount = payments.filter((p) => p.status === 'rejected').length;
+    const pendingCount = payments.filter((p) => p.status === 'pending').length;
+    return {
+      total: payments.length,
+      verifiedCount: verified.length,
+      totalApprovedRevenue,
+      rejectedCount,
+      pendingCount,
+    };
+  }, [payments]);
+
+  // Export Payment History to CSV
+  const handleExportPaymentHistoryCSV = () => {
+    if (paymentHistoryRecords.length === 0) {
+      showFeedback(lang === 'bn' ? 'এক্সপোর্ট করার মতো কোনো পেমেন্ট রেকর্ড নেই।' : 'No payment records to export.', 'info');
+      return;
+    }
+    const headers = [
+      'Transaction ID',
+      'Gateway',
+      'Package',
+      'Amount (BDT)',
+      'Merchant Email',
+      'Sender Phone',
+      'Status',
+      'Submission Timestamp',
+      'Approval Timestamp',
+      'Administrator Username',
+      'Notes / Reason',
+    ];
+    const rows = paymentHistoryRecords.map((p) => [
+      p.transactionId,
+      p.paymentMethod.toUpperCase(),
+      p.planName,
+      p.amountBDT,
+      p.userEmail || '',
+      p.senderNumber,
+      p.status,
+      p.submittedAt ? new Date(p.submittedAt).toLocaleString('en-GB') : '',
+      p.approvedAt
+        ? new Date(p.approvedAt).toLocaleString('en-GB')
+        : p.rejectedAt
+        ? new Date(p.rejectedAt).toLocaleString('en-GB')
+        : 'Pending Review',
+      p.approvedBy || p.rejectedBy || (p.status === 'verified' ? 'naeem@webxpress.com.bd' : 'N/A'),
+      p.rejectionReason || (p.customLimitGranted ? `Granted: ${p.customLimitGranted} checks` : ''),
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `xbz_payment_history_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showFeedback(lang === 'bn' ? 'পেমেন্ট হিস্ট্রি CSV ফাইল সফলভাবে ডাউনলোড হয়েছে!' : 'Payment history exported to CSV successfully!', 'success');
+  };
 
   // SmartPOS Pool Summary calculation
   const smartposPoolSummary = useMemo(() => {
@@ -1596,6 +1765,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setAdminTab('history')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer relative ${
+                adminTab === 'history'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'পেমেন্ট হিস্ট্রি' : 'Payment History'}</span>
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-750 font-mono">
+                {payments.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('analytics')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                adminTab === 'analytics'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'ড্যাশবোর্ড অ্যানালিটিক্স' : 'Dashboard Stats'}</span>
+            </button>
+
+            <button
               onClick={() => setAdminTab('smartpos')}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer relative ${
                 adminTab === 'smartpos'
@@ -1611,18 +1807,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
-              onClick={() => setAdminTab('analytics')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-                adminTab === 'analytics'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>{lang === 'bn' ? 'গ্রোথ ও ফ্রড মেট্রিক্স' : 'Analytics & Fraud'}</span>
-            </button>
-
-            <button
               onClick={() => setAdminTab('pricing')}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
                 adminTab === 'pricing'
@@ -1632,6 +1816,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               <Tag className="w-3.5 h-3.5" />
               <span>{lang === 'bn' ? 'প্যাকেজ প্রাইস' : 'Package Pricing'}</span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('devices')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                adminTab === 'devices'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'ডিভাইস কন্ট্রোল' : 'Devices & Anti-Cheat'}</span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('audit')}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                adminTab === 'audit'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>{lang === 'bn' ? 'অডিট লগ' : 'Audit Log'}</span>
             </button>
           </div>
 
@@ -2409,6 +2617,399 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </table>
             </div>
           </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          TAB: PAYMENT HISTORY (SEARCHABLE PAST TRANSACTIONS & AUDIT TRAIL)
+         ========================================================================= */}
+      {adminTab === 'history' && (
+        <section className="space-y-6 animate-fade-in">
+          {/* Header & Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                <History className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>{lang === 'bn' ? 'পেমেন্ট হিস্ট্রি ও ট্রানজেকশন রেকর্ড' : 'Payment History & Past Transactions'}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/70 text-cyan-400 border border-cyan-500/30 font-mono">
+                    {paymentHistoryRecords.length} of {payments.length} Records
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {lang === 'bn'
+                    ? 'সকল অতীত লেনদেন, পেমেন্ট অনুমোদনকারী এডমিন এবং অনুমোদনের নির্দিষ্ট সময়কাল।'
+                    : 'Searchable ledger of all past transactions with approval timestamps and administrator usernames.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportPaymentHistoryCSV}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-300 bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/40 rounded-xl shadow-sm transition-colors cursor-pointer"
+                title="Export filtered records to CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{lang === 'bn' ? 'CSV এক্সপোর্ট' : 'Export CSV'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  fetch('/api/admin/packages')
+                    .then((res) => res.json())
+                    .then((data) => {
+                      if (Array.isArray(data)) setPayments(data);
+                    })
+                    .catch(() => {});
+                  showFeedback(lang === 'bn' ? 'হিস্ট্রি রিফ্রেশ করা হয়েছে।' : 'History refreshed.', 'info');
+                }}
+                className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-colors cursor-pointer"
+                title="Refresh history"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Metric Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'মোট লেনদেন' : 'Total Submissions'}</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-white font-mono tabular-nums">{historyMetrics.total}</span>
+            </div>
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'অনুমোদিত রেভিনিউ' : 'Verified Revenue'}</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-emerald-400 font-mono tabular-nums">৳{historyMetrics.totalApprovedRevenue.toLocaleString()}</span>
+            </div>
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'অনুমোদিত' : 'Approved'}</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-cyan-400 font-mono tabular-nums">{historyMetrics.verifiedCount}</span>
+            </div>
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'বাতিলকৃত' : 'Rejected'}</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-rose-400 font-mono tabular-nums">{historyMetrics.rejectedCount}</span>
+            </div>
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          <div className="p-4 rounded-2xl bg-[#0d1527] border border-slate-800 space-y-3">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={historySearchQuery}
+                  onChange={(e) => setHistorySearchQuery(e.target.value)}
+                  placeholder={lang === 'bn' ? 'TrxID, প্রেরক নম্বর, ইমেইল, এডমিন ইউজারনেম...' : 'Search TrxID, sender phone, email, admin username...'}
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-400 font-mono"
+                />
+                {historySearchQuery && (
+                  <button
+                    onClick={() => setHistorySearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filters */}
+              <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium">
+                {(['all', 'verified', 'pending', 'rejected'] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setHistoryStatusFilter(st)}
+                    className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer capitalize ${
+                      historyStatusFilter === st
+                        ? st === 'verified'
+                          ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30'
+                          : st === 'rejected'
+                          ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30'
+                          : st === 'pending'
+                          ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30'
+                          : 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {st === 'all'
+                      ? (lang === 'bn' ? 'সকল' : 'All')
+                      : st === 'verified'
+                      ? (lang === 'bn' ? 'অনুমোদিত' : 'Approved')
+                      : st === 'pending'
+                      ? (lang === 'bn' ? 'অপেক্ষমান' : 'Pending')
+                      : (lang === 'bn' ? 'বাতিল' : 'Rejected')}
+                  </button>
+                ))}
+              </div>
+
+              {/* Payment Method Filter */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl text-xs">
+                {(['all', 'bkash', 'nagad', 'rocket'] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setHistoryMethodFilter(m)}
+                    className={`px-2.5 py-1.5 rounded-lg font-semibold transition-colors uppercase ${
+                      historyMethodFilter === m
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {m === 'all' ? (lang === 'bn' ? 'মেথড' : 'All MFS') : m}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sort Order */}
+              <select
+                value={historySortOrder}
+                onChange={(e) => setHistorySortOrder(e.target.value as any)}
+                className="bg-slate-900 border border-slate-800 text-slate-300 text-xs px-3 py-2 rounded-xl outline-none focus:border-cyan-400 cursor-pointer font-mono"
+              >
+                <option value="newest">{lang === 'bn' ? 'নতুন আগে' : 'Newest First'}</option>
+                <option value="oldest">{lang === 'bn' ? 'পুরনো আগে' : 'Oldest First'}</option>
+                <option value="highest_amount">{lang === 'bn' ? 'সর্বোচ্চ টাকা' : 'Highest Amount'}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Searchable Payment History Table */}
+          <div className="rounded-2xl border border-slate-800 bg-[#0d1527] overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900/90 border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-mono font-semibold">
+                  <tr>
+                    <th className="px-4 py-3.5">TrxID ও মেথড</th>
+                    <th className="px-4 py-3.5">প্যাকেজ ও পরিমাণ</th>
+                    <th className="px-4 py-3.5">মার্চেন্ট ও প্রেরক নম্বর</th>
+                    <th className="px-4 py-3.5">স্ট্যাটাস</th>
+                    <th className="px-4 py-3.5">সাবমিটের সময়</th>
+                    <th className="px-4 py-3.5">অনুমোদনের সময়কাল</th>
+                    <th className="px-4 py-3.5">অনুমোদনকারী এডমিন</th>
+                    <th className="px-4 py-3.5">লিমিট / নোট</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-sans">
+                  {paymentHistoryRecords.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-16 text-center text-slate-500">
+                        <div className="max-w-xs mx-auto space-y-2">
+                          <History className="w-8 h-8 text-slate-600 mx-auto" />
+                          <p className="text-sm font-semibold text-slate-400">
+                            {lang === 'bn' ? 'কোনো পেমেন্ট হিস্ট্রি পাওয়া যায়নি' : 'No matching payment records found'}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {lang === 'bn' ? 'অনুগ্রহ করে সার্চ কুয়েরি বা ফিল্টার পরিবর্তন করুন।' : 'Try adjusting your search query or status filter.'}
+                          </p>
+                          {(historySearchQuery || historyStatusFilter !== 'all' || historyMethodFilter !== 'all') && (
+                            <button
+                              onClick={() => {
+                                setHistorySearchQuery('');
+                                setHistoryStatusFilter('all');
+                                setHistoryMethodFilter('all');
+                              }}
+                              className="mt-2 text-xs text-cyan-400 hover:underline cursor-pointer"
+                            >
+                              {lang === 'bn' ? 'ফিল্টার রিসেট করুন' : 'Reset Filters'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    paymentHistoryRecords.map((p) => {
+                      const isVerified = p.status === 'verified';
+                      const isPending = p.status === 'pending';
+                      const isRejected = p.status === 'rejected';
+
+                      // Gateway badge styling
+                      const methodBadge =
+                        p.paymentMethod === 'bkash'
+                          ? { bg: 'bg-pink-950/50 text-pink-300 border-pink-500/40', label: 'bKash' }
+                          : p.paymentMethod === 'nagad'
+                          ? { bg: 'bg-orange-950/50 text-orange-300 border-orange-500/40', label: 'Nagad' }
+                          : { bg: 'bg-purple-950/50 text-purple-300 border-purple-500/40', label: 'Rocket' };
+
+                      // Administrator info
+                      const actingAdminUsername = p.approvedBy || p.rejectedBy || (isVerified ? 'naeem@webxpress.com.bd' : null);
+
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
+                          {/* TrxID & Gateway */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${methodBadge.bg}`}>
+                                {methodBadge.label}
+                              </span>
+                              <div className="flex items-center gap-1 font-mono font-bold text-white text-xs">
+                                <span>{p.transactionId}</span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(p.transactionId);
+                                    showFeedback('TrxID copied!', 'info');
+                                  }}
+                                  className="p-1 rounded text-slate-500 hover:text-cyan-400 transition-colors cursor-pointer"
+                                  title="Copy TrxID"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Package & Amount */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span className="font-semibold text-white block text-xs">{p.planName}</span>
+                            <span className="text-xs font-mono font-bold text-emerald-400">৳{p.amountBDT?.toLocaleString()}</span>
+                          </td>
+
+                          {/* Merchant & Sender */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span className="text-xs text-slate-200 block font-mono">{p.userEmail || 'merchant@example.com'}</span>
+                            <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-slate-500" />
+                              {p.senderNumber}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            {isVerified && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 font-mono">
+                                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>{lang === 'bn' ? 'অনুমোদিত' : 'Verified'}</span>
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/40 font-mono">
+                                <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                <span>{lang === 'bn' ? 'অপেক্ষমান' : 'Pending'}</span>
+                              </span>
+                            )}
+                            {isRejected && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-950/70 text-rose-300 border border-rose-500/40 font-mono">
+                                <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                                <span>{lang === 'bn' ? 'বাতিলকৃত' : 'Rejected'}</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Submission Date */}
+                          <td className="px-4 py-3.5 whitespace-nowrap font-mono text-[11px] text-slate-400">
+                            <div>
+                              {new Date(p.submittedAt).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              {new Date(p.submittedAt).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                          </td>
+
+                          {/* Approval Timestamp */}
+                          <td className="px-4 py-3.5 whitespace-nowrap font-mono text-[11px]">
+                            {p.approvedAt ? (
+                              <div className="text-emerald-300">
+                                <div className="font-semibold">
+                                  {new Date(p.approvedAt).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </div>
+                                <div className="text-[10px] text-emerald-400/70">
+                                  {new Date(p.approvedAt).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                  })}
+                                </div>
+                              </div>
+                            ) : p.rejectedAt ? (
+                              <div className="text-rose-300">
+                                <div>
+                                  {new Date(p.rejectedAt).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </div>
+                                <div className="text-[10px] text-rose-400/70">
+                                  {new Date(p.rejectedAt).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-amber-400/70 font-sans text-xs italic">
+                                {lang === 'bn' ? 'অ্যাডমিন অনুমোদনের অপেক্ষায়' : 'Awaiting Review'}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Administrator Username */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            {actingAdminUsername ? (
+                              <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                  <ShieldCheck className="w-3.5 h-3.5" />
+                                </div>
+                                <div>
+                                  <span className="font-mono text-xs font-semibold text-white block">
+                                    {actingAdminUsername}
+                                  </span>
+                                  <span className="text-[10px] text-cyan-400 font-mono">
+                                    {isVerified ? 'Verified by Admin' : 'Rejected by Admin'}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 font-mono text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* Limit / Notes */}
+                          <td className="px-4 py-3.5 text-xs text-slate-300 max-w-xs">
+                            {p.customLimitGranted && (
+                              <span className="px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] block w-fit">
+                                +{p.customLimitGranted.toLocaleString()} checks
+                              </span>
+                            )}
+                            {p.rejectionReason && (
+                              <span className="text-[11px] text-rose-300 font-medium block truncate" title={p.rejectionReason}>
+                                {p.rejectionReason}
+                              </span>
+                            )}
+                            {!p.customLimitGranted && !p.rejectionReason && (
+                              <span className="text-slate-500 font-mono text-[11px]">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          TAB: DASHBOARD STATISTICS & RECHARTS ANALYTICS
+         ========================================================================= */}
+      {adminTab === 'analytics' && (
+        <section className="space-y-6 animate-fade-in">
+          <DashboardStatistics users={users} payments={payments} lang={lang} />
         </section>
       )}
 
@@ -3441,6 +4042,308 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          TAB: HARDWARE DEVICE & IP ANTI-CHEAT INSPECTOR
+         ========================================================================= */}
+      {adminTab === 'devices' && (
+        <section className="space-y-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>{lang === 'bn' ? 'ডিভাইস ও আইপি অ্যান্টি-চিট কন্ট্রোল' : 'Device & IP Anti-Cheat Inspector'}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/70 text-cyan-400 border border-cyan-500/30 font-mono">
+                    {devicesList.length} Devices
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {lang === 'bn'
+                    ? 'ক্যানভাস ও হার্ডওয়্যার ফিঙ্গারপ্রিন্ট এবং সার্ভার আইপি দিয়ে চিটিং ও ফ্রি লিমিট বাইপাস প্রতিরোধ।'
+                    : 'Server-side canvas and hardware device fingerprints preventing free-tier limit abuse.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={fetchDevices}
+              disabled={isLoadingDevices}
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors cursor-pointer w-fit"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingDevices ? 'animate-spin text-cyan-400' : ''}`} />
+              <span>{lang === 'bn' ? 'রিফ্রেশ করুন' : 'Refresh'}</span>
+            </button>
+          </div>
+
+          {/* Device KPI Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'মোট ট্র্যাককৃত ডিভাইস' : 'Tracked Devices'}</span>
+              <span className="text-2xl font-extrabold text-white font-mono">{devicesList.length}</span>
+            </div>
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'পর্যবেক্ষণাধীন আইপি' : 'Monitored IPs'}</span>
+              <span className="text-2xl font-extrabold text-cyan-400 font-mono">{ipsList.length}</span>
+            </div>
+            <div className="p-4 rounded-xl bg-[#0d1527] border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 block">{lang === 'bn' ? 'হোয়াইটলিস্টকৃত / অনুমোদিত' : 'Whitelisted Devices'}</span>
+              <span className="text-2xl font-extrabold text-emerald-400 font-mono">
+                {devicesList.filter((d) => d.isWhitelisted || d.isApprovedByAdmin).length}
+              </span>
+            </div>
+          </div>
+
+          {/* Tracked Devices Table */}
+          <div className="rounded-2xl border border-slate-800 bg-[#0d1527] overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between">
+              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                {lang === 'bn' ? 'ডিভাইস ফিঙ্গারপ্রিন্ট রেজিস্ট্রি' : 'Hardware Fingerprint Registry'}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900/90 border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-mono font-semibold">
+                  <tr>
+                    <th className="px-4 py-3">ডিভাইস আইডি</th>
+                    <th className="px-4 py-3">সর্বশেষ আইপি</th>
+                    <th className="px-4 py-3">গেস্ট চেক (/৩)</th>
+                    <th className="px-4 py-3">ফ্রি চেক (/১০০)</th>
+                    <th className="px-4 py-3">সংযুক্ত অ্যাকাউন্টসমূহ</th>
+                    <th className="px-4 py-3">স্ট্যাটাস</th>
+                    <th className="px-4 py-3 text-right">এডমিন অ্যাকশন</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-sans">
+                  {devicesList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
+                        {isLoadingDevices ? 'ডিভাইস লোড হচ্ছে...' : 'কোনো ডিভাইস রেকর্ড পাওয়া যায়নি।'}
+                      </td>
+                    </tr>
+                  ) : (
+                    devicesList.map((d) => {
+                      const isWhitelisted = d.isWhitelisted || d.isApprovedByAdmin;
+                      const isGuestExhausted = d.guestSearches >= 3;
+                      const isFreeExhausted = d.freeSearches >= 100;
+
+                      return (
+                        <tr key={d.deviceId} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-4 py-3.5 font-mono text-[11px] text-cyan-300 font-semibold truncate max-w-[160px]">
+                            {d.deviceId}
+                          </td>
+                          <td className="px-4 py-3.5 font-mono text-slate-300">{d.lastIp || '127.0.0.1'}</td>
+                          <td className="px-4 py-3.5 font-mono font-bold">
+                            <span className={isGuestExhausted ? 'text-rose-400' : 'text-slate-300'}>
+                              {d.guestSearches} / 3
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 font-mono font-bold">
+                            <span className={isFreeExhausted ? 'text-amber-400' : 'text-slate-300'}>
+                              {d.freeSearches} / 100
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-400 text-[11px]">
+                            {d.associatedEmails && d.associatedEmails.length > 0 ? (
+                              d.associatedEmails.join(', ')
+                            ) : (
+                              <span className="text-slate-600">Guest Visitor</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            {isWhitelisted ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 font-mono">
+                                Whitelisted
+                              </span>
+                            ) : isGuestExhausted || isFreeExhausted ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/70 border border-rose-500/40 text-rose-300 font-mono">
+                                Limit Hit
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300 font-mono">
+                                Active
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/admin/devices/${encodeURIComponent(d.deviceId)}/reset`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ adminEmail: currentUserEmail || 'naeem@webxpress.com.bd' }),
+                                    });
+                                    const data = await res.json();
+                                    showFeedback(data.message || 'লিমিট রিসেট হয়েছে!', 'success');
+                                    fetchDevices();
+                                  } catch {}
+                                }}
+                                className="px-2.5 py-1 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors cursor-pointer"
+                                title="Reset search count to 0"
+                              >
+                                রিসেট
+                              </button>
+
+                              {!isWhitelisted && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetch(`/api/admin/devices/${encodeURIComponent(d.deviceId)}/approve`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ adminEmail: currentUserEmail || 'naeem@webxpress.com.bd' }),
+                                      });
+                                      const data = await res.json();
+                                      showFeedback(data.message || 'ডিভাইস অনুমোদিত!', 'success');
+                                      fetchDevices();
+                                    } catch {}
+                                  }}
+                                  className="px-2.5 py-1 text-xs font-bold bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 rounded-lg transition-colors cursor-pointer"
+                                  title="Whitelist this device"
+                                >
+                                  হোয়াইটলিস্ট
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          TAB: ADMIN AUDIT LOG TRAIL
+         ========================================================================= */}
+      {adminTab === 'audit' && (
+        <section className="space-y-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>{lang === 'bn' ? 'অ্যাডমিন অ্যাকশন অডিট লগ' : 'Admin Security & Action Audit Trail'}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950/70 text-cyan-400 border border-cyan-500/30 font-mono">
+                    {auditLogs.length} Records
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {lang === 'bn'
+                    ? 'ম্যানুয়াল আপগ্রেড, পেমেন্ট অনুমোদন ও প্রত্যাখ্যানের সম্পূর্ণ সময়ভিত্তিক সিকিউরিটি ট্রেইল।'
+                    : 'Tamper-evident audit trail recording every approval, rejection, and manual tier elevation.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={fetchAuditLogs}
+              disabled={isLoadingAuditLogs}
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition-colors cursor-pointer w-fit"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingAuditLogs ? 'animate-spin text-cyan-400' : ''}`} />
+              <span>{lang === 'bn' ? 'লগ রিফ্রেশ করুন' : 'Refresh Logs'}</span>
+            </button>
+          </div>
+
+          {/* Audit Log Table */}
+          <div className="rounded-2xl border border-slate-800 bg-[#0d1527] overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900/90 border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-mono font-semibold">
+                  <tr>
+                    <th className="px-4 py-3.5">তারিখ ও সময়</th>
+                    <th className="px-4 py-3.5">অ্যাডমিন</th>
+                    <th className="px-4 py-3.5">অ্যাকশন</th>
+                    <th className="px-4 py-3.5">টার্গেট মার্চেন্ট / TrxID</th>
+                    <th className="px-4 py-3.5">বিস্তারিত বিবরণ</th>
+                    <th className="px-4 py-3.5 text-right font-mono">অ্যাডমিন আইপি</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-sans">
+                  {auditLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                        {isLoadingAuditLogs ? 'অডিট লগ লোড হচ্ছে...' : 'কোনো অডিট লগ রেকর্ড পাওয়া যায়নি।'}
+                      </td>
+                    </tr>
+                  ) : (
+                    auditLogs.map((log) => {
+                      const isApproval = log.action === 'payment_approved';
+                      const isRejection = log.action === 'payment_rejected';
+                      const isDevice = log.action?.startsWith('device');
+
+                      return (
+                        <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-4 py-3.5 font-mono text-[11px] text-slate-400 whitespace-nowrap">
+                            <div>
+                              {new Date(log.timestamp).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              {new Date(log.timestamp).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5 font-mono font-semibold text-white whitespace-nowrap">
+                            {log.adminEmail}
+                          </td>
+
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                                isApproval
+                                  ? 'bg-emerald-950/70 border border-emerald-500/40 text-emerald-300'
+                                  : isRejection
+                                  ? 'bg-rose-950/70 border border-rose-500/40 text-rose-300'
+                                  : isDevice
+                                  ? 'bg-amber-950/70 border border-amber-500/40 text-amber-300'
+                                  : 'bg-cyan-950/70 border border-cyan-500/40 text-cyan-300'
+                              }`}
+                            >
+                              {log.actionLabel || log.action}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-3.5 font-mono text-cyan-300 whitespace-nowrap">
+                            {log.targetEmail || log.targetId}
+                          </td>
+
+                          <td className="px-4 py-3.5 text-slate-300 max-w-xs leading-relaxed text-[11px]">
+                            {log.details}
+                          </td>
+
+                          <td className="px-4 py-3.5 font-mono text-slate-400 text-right text-[11px] whitespace-nowrap">
+                            {log.ip || '127.0.0.1'}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       )}

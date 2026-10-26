@@ -1,128 +1,198 @@
-# Theme System Overhaul, Contrast Hardening & Dynamic Score Animation
+# Strict Feature Gating, Admin Payment Approval & Device/IP Abuse Prevention
 
-Fix the inverted theme toggle, eliminate dark mode styling inconsistencies across all sections, elevate light mode typography to high-contrast SmartPOS BD balanced slate standards, and introduce a smooth dynamic border glow animation on the search card keyed to the courier risk level.
-
----
+A comprehensive, production-grade security and access control system ensuring premium features remain strictly locked for Free and Guest merchants until admin approval, enforced with server-side IP and hardware device fingerprinting to prevent free-tier cheating.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following user preferences were confirmed during Phase 1 clarification:
-
-- **Confirmed Decision 1: Search Result Dynamic Animation**: Implement a smooth, subtle CSS border highlight and ambient glow on the HeroSearch input box when an analysis result is received. The glow dynamically matches the risk tier:
-  - **Safe / Low Risk (80%+ Deliveries)**: Emerald Green (`#10B981`) pulse with subtle glow
-  - **Moderate / Caution (60%-79%)**: Amber Orange (`#F59E0B`) glow
-  - **High Risk / Blacklisted (<60% or fraud reports)**: Rose Red (`#EF4444`) glow
-  - **New Customer**: Cyan / Indigo (`#06B6D4`) glow
-- **Confirmed Decision 2: Theme Switcher UI**: Replace the single icon toggle with a sleek, unambiguous two-state segmented control showing both Sun and Moon icons simultaneously, with the active state clearly highlighted with a background pill and tooltip (eliminating the toggle inversion confusion).
-- **Confirmed Decision 3: Light Mode Contrast Hardening**: Strictly enforce SmartPOS BD balanced slate typography (`#0F172A` headings, `#1E293B` subheadings, `#334155` body text, `#475569` metadata) and replace all washed-out gray text classes (`text-slate-400`, `text-slate-500`, `text-slate-300`) with high-contrast WCAG AA compliant slate tones.
-- **Confirmed Decision 4: 100% Comprehensive Dark Mode**: Audit and fix all sections (`SmartPosHomeContent`, `HeroSearch`, `CourierStatusStrip`, `LiveFraudTicker`, `Footer`, and modals) so that switching to dark mode turns every container, background, and card into cohesive deep slate (`#070B14` canvas, `#0D1527` surface, `#1E293B` borders), with zero light leaks.
+> The following specifications reflect the user's confirmed choices:
+> - **Premium Features to Lock**: Batch Check, Community Fraud Database, and REST API Integration are strictly locked for all Guest and Free tier accounts.
+> - **Anti-Cheat Enforcement**: User IP and Device Fingerprint detection will enforce usage limits server-side across all sessions, preventing users from resetting counters via incognito mode, cookie clearing, or new dummy accounts.
+> - **Strict Payment Approval Gate**: Submitting bKash/Nagad/Rocket payment details places the request in `pending` review. Features remain locked with a dedicated "Pending Admin Review" status card and instant WhatsApp escalation button until an Admin approves the payment from the Admin Console.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Unifies the website's visual presentation across both Light and Dark modes. Guarantees that every text element is legible without strain, theme switches work intuitively without inversion, every component honors the active theme without visual glitches, and merchants receive immediate, delightful feedback through a dynamic score-colored border glow animation when searching customer phone numbers.
-- **Target Audience / Persona**: Bangladeshi merchants conducting high-volume courier checks in both daytime daylight environments (requiring crisp contrast) and late-night fulfillment sessions (requiring unified deep dark mode).
-- **Key Value**: Flawless visual stability, zero eye strain, clear theme toggle feedback, and instant visual verification of customer trust scores through adaptive animations.
+### What It Does
+1. **Server-Authoritative Device & IP Tracking**:
+   - Computes a client-side multi-signal device fingerprint (canvas hash, WebGL hardware signature, audio context, screen depth, user-agent) paired with the server-detected client IP (`X-Forwarded-For` / remote IP).
+   - Tracks exact lifetime search limits: 3 lifetime searches for unregistered guests, 100 monthly searches for free registered accounts per device/IP.
+   - Prevents bypasses: Opening private/incognito tabs, clearing `localStorage`, or registering throwaway accounts from the same device/IP will immediately be identified by the backend and rejected with an HTTP 403 `LIMIT_REACHED` response until an admin grants an override or approves a paid package.
+
+2. **Zero Instant-Unlock on Payment Submission**:
+   - Replaces the premature client-side auto-activation with a strict transactional workflow.
+   - Submissions persist to `.payments_db.json` with status `pending`.
+   - The user interface immediately reflects the pending status with an informative timeline card, Transaction ID receipt, and direct 1-click WhatsApp verification contact to founder Naim Xbz (+8801703223141).
+   - Only when an Admin logs into the Admin Dashboard and clicks "Approve Payment" does the server elevate the account to `pro` or `enterprise`, unlock the features, and grant quota.
+
+3. **Strict Feature Gating (Guest & Free)**:
+   - **Batch Check**: Locked. Shows high-conversion paywall with pending payment status if a submission is awaiting review.
+   - **Community Database**: Locked. Shows verified merchant shield paywall.
+   - **REST API & Plugins**: Locked. Token generation and documentation hidden behind active paid tier.
+   - **Single Search**: Limited by server-enforced device/IP quota (3 for guest, 100 for free). When exhausted, a sleek modal prompts plan upgrade or WhatsApp administrative approval.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Key User Flows
-1. **Searching a Phone Number**:
-   - The user enters an 11-digit number and clicks "ফ্রড চেক করুন".
-   - As the result resolves, the search input smoothly transitions with an animated border highlight and subtle ambient glow corresponding to the safety score (e.g., emerald green for safe, amber for moderate, rose for high risk).
-   - The input keeps the subtle glowing accent until a new number is typed or cleared.
-2. **Switching Themes (Light / Dark)**:
-   - The navbar displays an intuitive segmented pill: `[ ☀️ Light | 🌙 Dark ]`.
-   - The currently active mode is highlighted with an elevated pill.
-   - Clicking either side instantly and synchronously updates the HTML root (`class="light"` or `class="dark"`), local storage, and all CSS variables without inversion or flashing.
-3. **Reading Content in Light Mode**:
-   - Headings are deep, authoritative slate (`#0F172A`).
-   - Body copy and descriptions are crisp slate-700 (`#334155`).
-   - Card borders are sharp slate-200 with soft, non-muddy shadows.
+### User Experience Flows
 
-### Theme Tokens & Color Palette
+```
+[ Visitor / Merchant arrives ]
+       │
+       ▼
+[ Performs Search ] ──▶ [ Server checks IP + Device Fingerprint ]
+       │                       │
+       ├─ Quota remaining ─────┴─▶ Scan results displayed
+       │
+       └─ Quota exhausted ─────▶ [ Anti-Cheat Lockout Screen ]
+                                        │
+                                        ├─▶ [ Upgrade Package ]
+                                        └─▶ [ Contact Admin on WhatsApp ]
 
-| Token / Layer | Light Mode (SmartPOS BD Standard) | Dark Mode (Unified Deep Cyber Slate) |
-|---|---|---|
-| Page Background | `#F8FAFC` (Slate 50) | `#070B14` (Deep Canvas) |
-| Primary Card Surface | `#FFFFFF` (Pure White) | `#0D1527` (Card Navy) |
-| Secondary Surface | `#F1F5F9` (Slate 100) | `#1E293B` (Slate 800) |
-| Border Dividers | `#E2E8F0` (Slate 200) | `#1E293B` / `#334155` |
-| Primary Headlines | `#0F172A` (Slate 900) | `#FFFFFF` / `#F8FAFC` |
-| Subheadings & Labels | `#1E293B` (Slate 800) | `#E2E8F0` (Slate 200) |
-| Body & Descriptions | `#334155` (Slate 700) | `#CBD5E1` (Slate 300) |
-| Metadata & Timestamps | `#475569` (Slate 600) | `#94A3B8` (Slate 400) |
-| Safe Accent | `#059669` / `#10B981` | `#10B981` / `#34D399` |
-| Caution Accent | `#D97706` / `#F59E0B` | `#F59E0B` / `#FBBF24` |
-| Danger Accent | `#DC2626` / `#EF4444` | `#EF4444` / `#F87171` |
+[ Upgrades to Pro / Enterprise ]
+       │
+       ▼
+[ Sends bKash/Nagad/Rocket & Submits TrxID ]
+       │
+       ▼
+[ Status: PENDING ADMIN REVIEW ]
+(Features remain LOCKED; Live status poller + WhatsApp priority review card)
+       │
+       ▼
+[ Admin Reviews in Dashboard & Clicks "Approve" ]
+       │
+       ▼
+[ Real-Time Sync ] ──▶ [ Account elevated: Pro / Enterprise UNLOCKED ]
+```
 
----
-
-## 3. Key Product Decisions & Root Cause Analysis
-
-### Issue 1: Theme Inversion & Partial Dark Mode
-- **Root Cause**:
-  1. The toggle button previously displayed `<Moon ... /> Dark` when the mode was already dark, causing users to believe clicking it would activate dark mode, when in reality it toggled to light.
-  2. In `src/index.css`, aggressive `html.light .bg-slate-900 { background-color: #ffffff !important; }` rules were defined without strict pairing for dark mode, and several sections (`SmartPosHomeContent`, `HeroSearch`) had `bg-slate-100/70` without clean dark backgrounds, causing cards to stay gray or white in dark mode.
-- **Solution**:
-  - Replace the toggle with an explicit 2-button segmented control showing both Sun and Moon with the active state clearly marked.
-  - Standardize CSS rules using Tailwind's native `dark:` modifier rather than conflicting `!important` overrides, and ensure `html.dark` and `html.light` strictly apply surface tokens.
-
-### Issue 2: Light Mode Text Readability
-- **Root Cause**: Components contained numerous instances of `text-slate-400`, `text-slate-500`, and `text-slate-300`, which fail contrast guidelines against white or light gray cards.
-- **Solution**: Upgrade all text in `HeroSearch.tsx`, `SmartPosHomeContent.tsx`, `CourierStatusStrip.tsx`, `Navbar.tsx`, and `Footer.tsx` to high-contrast slate-800 (`#1E293B`) and slate-700 (`#334155`).
-
-### Issue 3: Result Animation
-- **Chosen Approach**: A high-performance, GPU-accelerated CSS keyframe border animation (`border-pulse-glow`) applied to the form container in `HeroSearch.tsx`. When a search completes, the risk level is passed to `HeroSearch` via props, triggering a smooth color wave around the 16px container and a subtle matching halo glow.
+### Visual Identity & Components
+- **Pending Review Banner & Card**:
+  - Deep slate background (`#0b1324`) with an amber badge indicating "অ্যাডমিন ভেরিফিকেশন অপেক্ষমান (Pending Approval)".
+  - Displays submitted TrxID, sender number, timestamp, and package name.
+  - Action button: Direct WhatsApp link (`wa.me/8801703223141`) with pre-filled message including TrxID for instant human verification.
+  - Live "Check Status" button allowing the user to refresh their verification state instantly without a hard page reload.
+- **Device & IP Abuse Prevention Lock Screen**:
+  - Appears smoothly when the server returns 403 `QUOTA_EXHAUSTED`.
+  - Explains cleanly that this device or IP network has completed its allotted free tier checks.
+  - Removes all bypass cheat buttons ("Instant 1-Click Unlock").
+- **Admin Package Approval Console**:
+  - Enhanced UI in `AdminDashboard.tsx` with quick 1-click "Approve & Unlock Package", "Reject", and "Grant Custom Check Quota".
+  - Shows IP address and Device Fingerprint associated with the payment submission.
 
 ---
 
-## 4. Technical Architecture & Component Mapping
+## 3. Key Product Decisions & Trade-Offs
+
+| Decision | Chosen Approach | Why | Alternative Considered |
+| :--- | :--- | :--- | :--- |
+| **Device Identification** | Combined client canvas/hardware fingerprint + Server IP | Client cookies and localStorage are easily wiped by users in incognito mode. Server-side IP + device hash pairing stops abuse across sessions. | Pure IP tracking (fails when users share NAT/office Wi-Fi) or pure cookies (easily cleared). |
+| **Payment Verification State** | Server-persisted `pending` state with polling & WebSocket/fetch sync | Guarantees no merchant gets free access before money actually reaches the merchant account. | Automated SMS scrapers (unreliable and fragile in Bangladesh mobile banking). |
+| **Instant Demo Unlock Button** | Completely removed from production paywall | Prevent users from self-unlocking premium features without paying or admin permission. | Hidden test button (too easy to find in DOM). |
+| **Fast-Track WhatsApp Escalation** | Direct WhatsApp button with pre-filled TrxID | Bangladeshi e-commerce merchants prefer fast 2-minute confirmation via WhatsApp. | Email ticketing (too slow for real-time order dispatch). |
+
+---
+
+## 4. Technical Architecture & Data Strategy
+
+### Technical Architecture Diagram
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        APP STATE & THEME ENGINE                        │
+│                               CLIENT                                   │
 │                                                                        │
-│   theme state ('light' | 'dark') ──► synchronized to <html> class      │
-│   searchResult (PhoneAnalysisResult) ──► passed to HeroSearch          │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-           ┌────────────────────────┴────────────────────────┐
-           ▼                                                 ▼
-┌───────────────────────────────────────┐ ┌──────────────────────────────┐
-│ Navbar.tsx Segmented Toggle           │ │ HeroSearch.tsx Dynamic Glow  │
-│                                       │ │                              │
-│ [ ☀️ Light (Active) | 🌙 Dark ]        │ │ riskLevel: 'low' ──► Green   │
-│ - Unambiguous 2-state visual control  │ │ riskLevel: 'med' ──► Amber   │
-│ - Instant synchronous DOM mutation    │ │ riskLevel: 'high'──► Rose    │
-└───────────────────────────────────────┘ └──────────────────────────────┘
-                                    │
-           ┌────────────────────────┴────────────────────────┐
-           ▼                                                 ▼
-┌───────────────────────────────────────┐ ┌──────────────────────────────┐
-│ SmartPosHomeContent.tsx               │ │ CourierStatusStrip & Footer  │
-│ - Crisp dark text in light mode       │ │ - Uniform deep card surfaces │
-│ - Pure deep navy/slate in dark mode   │ │ - Consistent slate borders   │
-└───────────────────────────────────────┘ └──────────────────────────────┘
+│  ┌───────────────────────┐           ┌──────────────────────────────┐  │
+│  │ Device Fingerprinter  │           │   Gated Components           │  │
+│  │ (Canvas + Screen + UA)│           │   (BatchCheck, DB, API Docs) │  │
+│  └──────────┬────────────┘           └──────────────▲───────────────┘  │
+│             │                                       │                  │
+│             ▼                                       │ (Gated by        │
+│   HTTP Headers / Payload                            │  user.planId &   │
+│   (X-Device-Id, X-Client-Ip)                        │  payment.status) │
+│             │                                       │                  │
+└─────────────┼───────────────────────────────────────┼──────────────────┘
+              │                                       │
+              ▼                                       │
+┌─────────────────────────────────────────────────────┼──────────────────┐
+│                           EXPRESS BACKEND           │                  │
+│                                                     │                  │
+│  ┌─────────────────────────┐         ┌──────────────┴───────────────┐  │
+│  │ deviceLimitsDb          │         │ paymentDb & userDb           │  │
+│  │ - IP + Device tracking  │         │ - Stores pending submissions │  │
+│  │ - 3 guest / 100 free    │         │ - Admin approval elevates    │  │
+│  │ - Admin whitelist       │         │   merchant to Pro/Enterprise │  │
+│  └──────────┬──────────────┘         └──────────────▲───────────────┘  │
+│             │                                       │                  │
+│             ▼                                       │                  │
+│  ┌─────────────────────────┐                        │                  │
+│  │ /api/check-phone Guard  │                        │                  │
+│  │ Blocks if quota reached ├────────────────────────┘                  │
+│  └─────────────────────────┘                        │                  │
+│                                                     │                  │
+│  ┌──────────────────────────────────────────────────┴───────────────┐  │
+│  │ Admin Endpoints                                                  │  │
+│  │ POST /api/admin/packages/:id/approve ──▶ Unlocks Plan & Device   │  │
+│  │ POST /api/admin/devices/reset        ──▶ Reset Device Quota      │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Updates
-1. `src/App.tsx`:
-   - Pass `searchResult?.riskLevel` to `HeroSearch` as `lastResultRiskLevel`.
-   - Maintain robust `theme` state synchronization with `document.documentElement` class list (`light` / `dark`) and `data-theme`.
-2. `src/components/Navbar.tsx`:
-   - Redesign the theme toggle into a clear segmented pill containing both Sun (Light) and Moon (Dark) with active highlights.
-3. `src/components/HeroSearch.tsx`:
-   - Accept `lastResultRiskLevel?: string`.
-   - Apply dynamic animated border highlight classes (`border-emerald-500 shadow-emerald-500/20`, `border-amber-500 shadow-amber-500/20`, `border-rose-500 shadow-rose-500/20`) with smooth 600ms transitions.
-   - Upgrade all text labels, subtitles, and badges to high-contrast slate.
-4. `src/components/SmartPosHomeContent.tsx`:
-   - Upgrade typography to high-contrast deep slate in light mode (`text-slate-900`, `text-slate-800`, `text-slate-700`).
-   - Fix dark mode background colors for "Why Choose Us", "How It Works", FAQ cards, and CTA banner to eliminate light leaks.
-5. `src/index.css`:
-   - Clean up conflicting `!important` selectors so dark mode and light mode are 100% stable and mutually exclusive.
-   - Add keyframes for subtle border pulsing on result retrieval.
+### Data Storage Schemas
+
+#### 1. `.device_limits_db.json`
+```json
+{
+  "devices": {
+    "dev_fingerprint_hash": {
+      "ip": "103.xxx.xxx.xxx",
+      "guestSearches": 3,
+      "freeSearches": 100,
+      "isApprovedByAdmin": false,
+      "lastActive": "2026-10-25T13:00:00Z",
+      "associatedEmails": ["user@domain.com"]
+    }
+  },
+  "ips": {
+    "103.xxx.xxx.xxx": {
+      "totalSearches": 103,
+      "blocked": false
+    }
+  }
+}
+```
+
+#### 2. Payment Flow Updates in `server.ts`
+- `POST /api/payment/submit`: Creates submission with status `'pending'`. Does NOT update user's plan.
+- `GET /api/payment/my-status`: Allows client to check the status of their latest payment using email or device fingerprint.
+- `POST /api/admin/packages/:id/approve`:
+  - Changes payment status to `'verified'`.
+  - Updates merchant plan to `pro` / `enterprise`.
+  - Upgrades checks quota (2,500 or 99,999).
+  - Unblocks the associated device/IP so limits are lifted immediately.
+
+#### 3. Client Frontend Upgrades
+- `src/utils/deviceFingerprint.ts`: Lightweight, deterministic hardware fingerprinting utility (Canvas rendering hash, audio context seed, screen resolution, color depth, browser platform).
+- `src/App.tsx`:
+  - Pass `X-Device-Id` on all API requests.
+  - Replace client-side optimistic plan upgrades with verified server plan check.
+  - Render `PlanGatePaywall` for Batch Check, Community Database, and API Docs if user is `guest` or `free`.
+  - If a user has a pending payment, `PlanGatePaywall` renders the active "Approval Pending" card with WhatsApp verification CTA instead of the purchase form.
+- `src/components/PlanGatePaywall.tsx`:
+  - Eliminate the demo unlock button.
+  - Add Pending Approval state with transaction details and WhatsApp speedup button.
+- `src/components/AdminDashboard.tsx`:
+  - Add pending package notification badge.
+  - Add Device/IP quota inspector with manual unlock/reset action for customer support.
+  - Audit Log tab displaying all administrative actions (approvals, rejections, whitelisting, quota adjustments) with timestamps, admin email, and IP addresses.
+
+---
+
+## 5. Verification & Completed Deliverables
+
+- [x] **Strict Feature Gating**: Batch Check, Community Database, and REST API are fully locked for all Guest and Free tier accounts.
+- [x] **Zero Instant-Unlock on Payment**: When submitting bKash/Nagad/Rocket payments, the request enters `pending` review. Features stay locked until an admin explicitly clicks "Approve".
+- [x] **Live Pending Status & WhatsApp CTA**: Gated feature paywalls and payment modal display a live pending card with Transaction ID and direct WhatsApp escalation link to founder Naim Xbz (`+8801703223141`).
+- [x] **Hardware & IP Anti-Cheat Tracking**: `deviceLimitsDb.ts` + `getDeviceFingerprint()` track usage across browser sessions, incognito tabs, and cookie resets (enforcing 3 lifetime searches for guests, 100 free searches for registered accounts).
+- [x] **Admin Dashboard with Audit Log & Device Inspector**: Admin can approve/reject pending submissions, view device fingerprints/IPs, whitelist devices, and inspect full audit logs of all actions with admin email and timestamps.
+- [x] **Full Type-Check & Production Build**: Both `lint_applet` and `compile_applet` pass with 0 errors.

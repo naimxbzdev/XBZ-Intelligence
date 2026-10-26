@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Code2, Copy, Check, Terminal, FileCode2, Globe2, ShieldCheck, Zap, Layers, Server } from 'lucide-react';
+import { Code2, Copy, Check, Terminal, FileCode2, Globe2, ShieldCheck, Zap, Layers, Server, Gauge, ArrowRight } from 'lucide-react';
 import type { Language } from '../utils/translations.ts';
 import { translations } from '../utils/translations.ts';
 
 interface ApiDocsViewProps {
   lang: Language;
+  onNavigateQuota?: () => void;
 }
 
-export const ApiDocsView: React.FC<ApiDocsViewProps> = ({ lang }) => {
+export const ApiDocsView: React.FC<ApiDocsViewProps> = ({ lang, onNavigateQuota }) => {
   const [activeLang, setActiveLang] = useState<'curl' | 'php' | 'node' | 'python'>('curl');
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedGet, setCopiedGet] = useState(false);
@@ -141,6 +142,39 @@ def check_fraud(phone_number: str, api_key: str):
               <span className="text-[11px] text-slate-400 font-mono">Steadfast, Pathao, RedX, CarryBee, Paperfly</span>
             </div>
           </div>
+        </div>
+
+        {/* Enterprise Usage Quota Status Strip */}
+        <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-cyan-950/40 to-slate-900 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shrink-0">
+              <Gauge className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white text-xs sm:text-sm">
+                  {lang === 'bn' ? 'এন্টারপ্রাইজ API ব্যবহার কোটা ট্র্যাকার' : 'Enterprise API Usage Quota Tracker'}
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
+                  90% Alert Active
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                {lang === 'bn'
+                  ? 'দৈনিক ৫,০০০ এবং মাসিক ১৫০,০০০ রিকোয়েস্ট লিমিট ট্র্যাকিং ও স্বয়ংক্রিয় থ্রেশহোল্ড অ্যালার্ট'
+                  : 'Track daily (5,000) and monthly (150,000) limits with real-time 90% threshold warnings'}
+              </p>
+            </div>
+          </div>
+          {onNavigateQuota && (
+            <button
+              onClick={onNavigateQuota}
+              className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            >
+              <span>{lang === 'bn' ? 'ব্যবহার কোটা মনিটর' : 'View Quota Monitor'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

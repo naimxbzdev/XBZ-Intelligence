@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Check, Copy, Loader2, CheckCircle2, AlertOctagon, ShieldCheck, Sparkles, Smartphone, ArrowRight, Zap, Gift, UserPlus } from 'lucide-react';
+import { X, Check, Copy, Loader2, CheckCircle2, AlertOctagon, ShieldCheck, Sparkles, Smartphone, ArrowRight, Zap, Gift, UserPlus, Clock, MessageSquare } from 'lucide-react';
 import type { Language } from '../utils/translations.ts';
-import type { PlanTier, PaymentMethod } from '../types/intelligence.ts';
+import type { PlanTier, PaymentMethod, PaymentSubmission } from '../types/intelligence.ts';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint.ts';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface PaymentModalProps {
   lang: Language;
   initialPlan?: PlanTier;
   onPaymentSuccess: (plan: PlanTier) => void;
+  onPaymentSubmitted?: (payment: PaymentSubmission) => void;
   user?: any;
   onOpenRegister?: () => void;
 }
@@ -19,6 +21,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   lang,
   initialPlan = 'pro',
   onPaymentSuccess,
+  onPaymentSubmitted,
   user,
   onOpenRegister,
 }) => {
@@ -29,6 +32,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [submittedPayment, setSubmittedPayment] = useState<PaymentSubmission | null>(null);
   const [copiedNumber, setCopiedNumber] = useState(false);
 
   // Sync initial plan if opened with different plan
@@ -126,15 +130,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setError(null);
 
     try {
+      const deviceId = getDeviceFingerprint();
       const res = await fetch('/api/payment/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Id': deviceId,
+          ...(user?.email ? { 'X-User-Email': user.email } : {}),
+        },
         body: JSON.stringify({
           planId: selectedPlan,
           paymentMethod: method,
           senderNumber,
           transactionId,
           userEmail: user?.email,
+          deviceId,
         }),
       });
 
@@ -143,20 +153,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error(data.error || 'Payment submission failed');
       }
 
-      if (data.payment) {
-        try {
-          const raw = localStorage.getItem('xbz_payment_submissions');
-          const existing = raw ? JSON.parse(raw) : [];
-          localStorage.setItem('xbz_payment_submissions', JSON.stringify([data.payment, ...existing]));
-        } catch {}
+      const paymentRecord = data.payment || {
+        planId: selectedPlan,
+        planName: selectedPlan === 'enterprise' ? 'Enterprise Unlimited' : 'Merchant Pro (2,500 checks)',
+        amountBDT,
+        paymentMethod: method,
+        senderNumber,
+        transactionId,
+        userEmail: user?.email,
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+      };
+
+      setSubmittedPayment(paymentRecord);
+      try {
+        const raw = localStorage.getItem('xbz_payment_submissions');
+        const existing = raw ? JSON.parse(raw) : [];
+        localStorage.setItem('xbz_payment_submissions', JSON.stringify([paymentRecord, ...existing]));
+      } catch {}
+
+      if (onPaymentSubmitted) {
+        onPaymentSubmitted(paymentRecord);
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        onPaymentSuccess(selectedPlan);
-        setSuccess(false);
-        onClose();
-      }, 1600);
     } catch (err: any) {
       setError(err.message || 'Error completing payment');
     } finally {
@@ -184,27 +204,74 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               {lang === 'bn' ? 'মার্চেন্ট প্ল্যান ক্রয় ও আপগ্রেড' : 'Purchase & Upgrade Plan'}
             </h3>
             <p className="text-xs text-slate-400">
-              {lang === 'bn' ? 'ফ্রি স্টার্টার চালান অথবা বিকাশ/নগদ সেন্ড মানি দিয়ে প্রো আনলক করুন' : 'Run Free Starter or upgrade to Pro via bKash / Nagad Send Money'}
+              {lang === 'bn' ? 'বিকাশ/নগদ সেন্ড মানি করে TrxID দিয়ে সাবমিট করুন' : 'Send Money via bKash / Nagad and submit TrxID'}
             </p>
           </div>
         </div>
 
         {success ? (
-          <div className="p-8 text-center space-y-3">
-            <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto animate-bounce" />
-            <h4 className="text-xl font-bold text-white">
-              {selectedPlan === 'free' 
-                ? (lang === 'bn' ? 'ফ্রি স্টার্টার প্যাকেজ সক্রিয় হয়েছে!' : 'Free Starter Plan Activated!')
-                : (lang === 'bn' ? 'পেমেন্ট ও প্যাকেজ রিকোয়েস্ট গৃহীত হয়েছে!' : 'Package Request Received!')}
-            </h4>
-            <p className="text-sm text-cyan-300 font-medium">
-              {selectedPlan === 'enterprise' ? 'Enterprise Unlimited Plan' : selectedPlan === 'pro' ? 'Merchant Pro Plan' : 'Free Starter Plan'}
-            </p>
-            <p className="text-xs text-slate-400">
+          <div className="p-6 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+              <Clock className="w-7 h-7 animate-pulse" />
+            </div>
+
+            <div>
+              <h4 className="text-lg font-bold text-white">
+                {selectedPlan === 'free'
+                  ? (lang === 'bn' ? 'ফ্রি স্টার্টার প্যাকেজ সক্রিয় হয়েছে!' : 'Free Starter Plan Activated!')
+                  : (lang === 'bn' ? 'পেমেন্ট সাবমিট হয়েছে — অ্যাডমিন অনুমোদনের অপেক্ষায়' : 'Payment Submitted — Pending Admin Approval')}
+              </h4>
+              <p className="text-xs text-amber-300/90 font-medium mt-1">
+                {selectedPlan === 'enterprise' ? 'Enterprise Unlimited' : selectedPlan === 'pro' ? 'Merchant Pro (2,500 checks)' : 'Free Starter Plan'}
+              </p>
+            </div>
+
+            {selectedPlan !== 'free' && submittedPayment && (
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60 text-left text-xs font-mono space-y-1.5 text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">TrxID:</span>
+                  <span className="text-amber-300 font-bold">{submittedPayment.transactionId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">প্রেরক নম্বর:</span>
+                  <span className="text-white">{submittedPayment.senderNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">পরিমাণ:</span>
+                  <span className="text-emerald-400 font-bold">৳{submittedPayment.amountBDT}</span>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
               {selectedPlan === 'free'
                 ? (lang === 'bn' ? 'আপনি প্রতি মাসে ১০০টি ফোন নম্বর বিনামূল্যে যাচাই করতে পারবেন।' : 'You can search up to 100 numbers per month for free.')
-                : (lang === 'bn' ? 'আপনার প্যাকেজ ও পেমেন্ট রিকোয়েস্টটি এডমিন প্যানেলে জমা হয়েছে। এডমিন অনুমোদনের পর সাথে সাথে লিমিট যুক্ত হবে।' : 'Your package request has been placed in the admin review queue. Quota activates upon approval.')}
+                : (lang === 'bn' ? 'আপনার পেমেন্ট তথ্য সফলভাবে অ্যাডমিন প্যানেলে জমা হয়েছে। অ্যাডমিন ভেরিফাই করে অনুমোদন দেওয়া মাত্রই আপনার প্রো/এন্টারপ্রাইজ ফিচার ও লিমিট সক্রিয় হয়ে যাবে।' : 'Your payment info has been placed in the admin verification queue. Features and quota will unlock upon admin review.')}
             </p>
+
+            <div className="flex flex-col gap-2 pt-2">
+              {selectedPlan !== 'free' && submittedPayment && (
+                <a
+                  href={`https://wa.me/8801703223141?text=${encodeURIComponent(
+                    `আসসালামু আলাইকুম Naim Xbz ভাইয়া, আমি XBZ Intelligence-এ ${submittedPayment.planName} প্যাকেজের পেমেন্ট করেছি। TrxID: ${submittedPayment.transactionId}, নম্বর: ${submittedPayment.senderNumber}। দয়া করে আমার অ্যাকাউন্টটি দ্রুত অনুমোদন করে দিন।`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-500 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>{lang === 'bn' ? 'হোয়াটসঅ্যাপে দ্রুত অনুমোদন নিন (+8801703223141)' : 'Get Fast Approval via WhatsApp'}</span>
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+              >
+                {lang === 'bn' ? 'বুঝেছি / বন্ধ করুন' : 'Got it / Close'}
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
